@@ -8,6 +8,13 @@
       "when": 1777017633528,
       "tag": "0000_rich_grandmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777018011041,
+      "tag": "0001_fast_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }
