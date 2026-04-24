@@ -353,14 +353,23 @@ git commit -m "feat: bootstrap next.js 15 app router with typescript"
 - [ ] **Step 1: Install runtime deps**
 
 ```bash
-pnpm add drizzle-orm postgres pg ioredis pino pino-pretty zod @node-rs/argon2 bullmq
+pnpm add drizzle-orm postgres ioredis pino zod@^3.23.8 @node-rs/argon2 bullmq
 ```
+
+Version pins called out:
+- `zod@^3.23.8` — v4 deprecates `.url()` and shifts error-map APIs in ways the plan's env schema does not account for. Pin to v3.
+- `postgres` is the tag-template client used by `drizzle-orm/postgres-js`. `pg` (node-postgres) is deliberately omitted — nothing in SP-1 uses it; keeping a second Postgres client installed invites accidental dual-pool bugs.
 
 - [ ] **Step 2: Install dev deps**
 
 ```bash
-pnpm add -D drizzle-kit @types/pg eslint eslint-config-next @vitest/coverage-v8
+pnpm add -D drizzle-kit eslint@^9 eslint-config-next @vitest/coverage-v8@^2.1.0 pino-pretty
 ```
+
+Version pins called out:
+- `@vitest/coverage-v8@^2.1.0` — must match the `vitest@^2.1.0` already installed; the v4 line is ABI-locked to vitest v4.
+- `eslint@^9` — `eslint-config-next@^16` supports eslint 9; Next 15's `next lint` path has not been validated with eslint 10. Stay on 9.
+- `pino-pretty` is a dev-only log transport; shipping it to production wastes image space and risks someone wiring it into prod. Pino loads it lazily from devDependencies when `transport: { target: 'pino-pretty' }` is used in dev.
 
 - [ ] **Step 3: Verify versions resolved**
 
