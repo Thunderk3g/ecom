@@ -757,6 +757,9 @@ export async function resetAndMigrate() {
   await migratorClient`CREATE SCHEMA public`;
   await migratorClient`GRANT ALL ON SCHEMA public TO app_migrator`;
   await migratorClient`GRANT USAGE ON SCHEMA public TO app_user`;
+  // drizzle tracks applied migrations in its own schema; must drop it too
+  // or `migrate` will no-op on a subsequent reset and leave public empty.
+  await migratorClient`DROP SCHEMA IF EXISTS drizzle CASCADE`;
   execSync('pnpm db:migrate', { stdio: 'inherit' });
 }
 
