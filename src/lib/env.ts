@@ -33,9 +33,22 @@ export function getEnv(): Env {
 
 // Back-compat shim for `import { env } from '@/lib/env'` call-sites that appear
 // later in the plan. Evaluation is lazy: parseEnv(process.env) only runs on
-// first property access, so merely importing this module does not throw.
+// first property access. Implements enough traps to survive `in`, Object.keys,
+// spread, and util.inspect on the proxy.
 export const env: Env = new Proxy({} as Env, {
-  get(_t, prop: string) {
+  get(_t, prop, receiver) {
+    if (typeof prop === 'symbol') return Reflect.get(getEnv(), prop, receiver);
     return getEnv()[prop as keyof Env];
+  },
+  has(_t, prop) {
+    return typeof prop === 'string' && prop in getEnv();
+  },
+  ownKeys() {
+    return Reflect.ownKeys(getEnv());
+  },
+  getOwnPropertyDescriptor(_t, prop) {
+    const e = getEnv();
+    if (typeof prop === 'symbol' || !(prop in e)) return undefined;
+    return { configurable: true, enumerable: true, writable: false, value: e[prop as keyof Env] };
   },
 });
