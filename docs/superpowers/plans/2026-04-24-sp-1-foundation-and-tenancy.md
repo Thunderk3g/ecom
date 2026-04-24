@@ -291,14 +291,16 @@ Expected: commit created; `git status` clean.
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
-  output: 'standalone',
+  ...(process.env.NEXT_STANDALONE === '1' ? { output: 'standalone' } : {}),
   reactStrictMode: true,
   poweredByHeader: false,
-  experimental: { typedRoutes: true },
+  typedRoutes: true,
 };
 
 export default config;
 ```
+
+Standalone output is gated on `NEXT_STANDALONE=1` so local builds (Windows without Developer Mode, where `fs.symlink` returns EPERM) complete cleanly; the Dockerfile in Task 25 sets the env var so the image still gets standalone output.
 
 - [ ] **Step 4: Create `src/app/layout.tsx`**
 
@@ -2455,8 +2457,9 @@ RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
 COPY . .
+ENV NEXT_STANDALONE=1
 RUN pnpm build
-# Standalone output already produced under .next/standalone
+# Standalone output produced under .next/standalone when NEXT_STANDALONE=1
 
 FROM node:${NODE_VERSION}-alpine AS runtime
 RUN addgroup -S app && adduser -S app -G app
