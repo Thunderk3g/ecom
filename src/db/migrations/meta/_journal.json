@@ -15,6 +15,13 @@
       "when": 1777018011041,
       "tag": "0001_fast_shinko_yamashiro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777018190761,
+      "tag": "0002_sleepy_moondragon",
+      "breakpoints": true
     }
   ]
 }
