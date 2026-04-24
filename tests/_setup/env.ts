@@ -5,7 +5,7 @@
 const env = process.env as Record<string, string | undefined>;
 env['NODE_ENV'] ??= 'test';
 env['ROLE'] ??= 'web';
-env['DATABASE_URL'] ??= 'postgres://app_migrator:dev_password@localhost:5432/ecommerce';
-env['REDIS_URL'] ??= 'redis://localhost:6379';
+env['DATABASE_URL'] ??= 'postgres://app_migrator:dev_password@localhost:5433/ecommerce';
+env['REDIS_URL'] ??= 'redis://localhost:6380';
 env['SESSION_SECRET'] ??= 'test_session_secret_32_chars_min_ok_testing_only';
 env['COOKIE_DOMAIN'] ??= 'localhost';

@@ -499,10 +499,10 @@ PORT=3000
 LOG_LEVEL=debug
 
 # Postgres — docker-compose starts one locally
-DATABASE_URL=postgres://app_migrator:dev_password@localhost:5432/ecommerce
+DATABASE_URL=postgres://app_migrator:dev_password@localhost:5433/ecommerce
 
 # Redis — docker-compose starts one locally
-REDIS_URL=redis://localhost:6379
+REDIS_URL=redis://localhost:6380
 
 # Auth — generate with: openssl rand -hex 32
 SESSION_SECRET=replace_me_with_32_byte_hex_string_from_openssl_rand
@@ -543,7 +543,8 @@ services:
       POSTGRES_USER: app_migrator
       POSTGRES_PASSWORD: dev_password
       POSTGRES_DB: ecommerce
-    ports: ["5432:5432"]
+    # Host port 5433 avoids conflict with any other local Postgres on 5432.
+    ports: ["5433:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -554,7 +555,8 @@ services:
 
   redis:
     image: redis:7
-    ports: ["6379:6379"]
+    # Host port 6380 avoids conflict with any other local Redis on 6379.
+    ports: ["6380:6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 3s
