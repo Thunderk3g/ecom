@@ -649,13 +649,28 @@ import { env } from '@/lib/env';
 
 // Two clients: `migrator` has BYPASSRLS (runs DDL and data ops in migrations/seed);
 // `app` is the NOBYPASSRLS runtime role — all request-time queries use this.
+// `prepare: false` keeps the clients compatible with pgbouncer transaction-pool mode
+// used by the Render deployment target.
+
+function deriveAppUrl(migratorUrl: string): string {
+  const u = new URL(migratorUrl);
+  if (u.username !== 'app_migrator') {
+    throw new Error(
+      `DATABASE_URL username must be 'app_migrator' so the app runtime can switch to NOBYPASSRLS 'app_user'; got '${u.username}'. This assertion prevents silently falling back to BYPASSRLS which would defeat the RLS tenancy model.`,
+    );
+  }
+  u.username = 'app_user';
+  return u.toString();
+}
+
 export const migratorClient = postgres(env.DATABASE_URL, { max: 1, prepare: false });
 export const migratorDb = drizzle(migratorClient);
 
-const appUrl = env.DATABASE_URL.replace('app_migrator:', 'app_user:');
-export const appClient = postgres(appUrl, { max: 10, prepare: false });
+export const appClient = postgres(deriveAppUrl(env.DATABASE_URL), { max: 10, prepare: false });
 export const appDb = drizzle(appClient);
 ```
+
+The `deriveAppUrl` assertion is load-bearing for the RLS tenancy model: a silent fallback to the migrator role (which has BYPASSRLS) would defeat every later RLS policy. The URL-parse approach is also resilient to changes in URL format (credentials in query params, different host shape, etc.).
 
 - [ ] **Step 5: Create `src/db/migrate.ts`**
 
