@@ -9,5 +9,8 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     setupFiles: ['tests/_setup/env.ts'],
     testTimeout: 15_000,
+    // Tests share one Postgres schema; resetAndMigrate drops/recreates it,
+    // so files must not run in parallel or they stomp on each other.
+    fileParallelism: false,
   },
 });
