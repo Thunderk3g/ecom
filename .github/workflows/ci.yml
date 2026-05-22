@@ -1,0 +1,55 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: app_migrator
+          POSTGRES_PASSWORD: dev_password
+          POSTGRES_DB: ecommerce
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U app_migrator"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 3s --health-timeout 3s --health-retries 10
+    env:
+      NODE_ENV: test
+      ROLE: web
+      DATABASE_URL: postgres://app_migrator:dev_password@localhost:5432/ecommerce
+      REDIS_URL: redis://localhost:6379
+      SESSION_SECRET: ${{ '0123456789abcdef0123456789abcdef' }}
+      COOKIE_DOMAIN: localhost
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.12.0 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.11.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Create app_user role
+        run: |
+          PGPASSWORD=dev_password psql -h localhost -U app_migrator -d ecommerce -c "
+            CREATE ROLE app_user LOGIN PASSWORD 'dev_password' NOBYPASSRLS;
+            GRANT CONNECT ON DATABASE ecommerce TO app_user;
+            GRANT USAGE ON SCHEMA public TO app_user;
+            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
+            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO app_user;
+          "
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm db:migrate
+      - run: pnpm test
+      - run: pnpm build
