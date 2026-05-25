@@ -18,6 +18,7 @@ import { z } from 'zod';
 import { addItem, getCart } from '@/modules/cart/cart';
 import { priceCart } from '@/modules/cart/pricing';
 import { withIdempotency } from '@/lib/idempotency';
+import { withRateLimit } from '@/lib/rate-limit';
 import { problem } from '@/lib/errors';
 import {
   attachCartSidCookie,
@@ -41,6 +42,11 @@ export async function POST(
   req: Request,
   ctx: { params: Promise<Params> },
 ): Promise<NextResponse> {
+  // Per-IP rate limit: 60/min. Cart-item mutations are high-volume during
+  // normal shopping but never that high from a single browser. SP-9 Task 14.
+  const limited = await withRateLimit(req, { limit: 60, windowSeconds: 60 });
+  if (limited) return limited;
+
   const resolved = await resolveStorefrontContext(req);
   if (!resolved.ok) return resolved.response;
   const { ctx: sctx } = resolved;

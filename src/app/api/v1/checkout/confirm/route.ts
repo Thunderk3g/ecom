@@ -20,6 +20,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { confirmCheckoutAdvisory } from '@/modules/checkout/checkout';
+import { withRateLimit } from '@/lib/rate-limit';
 import { problem } from '@/lib/errors';
 import {
   readJsonBody,
@@ -36,6 +37,11 @@ const bodySchema = z
   .strict();
 
 export async function POST(req: Request): Promise<NextResponse> {
+  // Per-IP rate limit: 20/min. Confirm is polled after a provider redirect,
+  // so the upper bound is "a hard-loop polling client" — 20/min is plenty.
+  const limited = await withRateLimit(req, { limit: 20, windowSeconds: 60 });
+  if (limited) return limited;
+
   const resolved = await resolveStorefrontContext(req);
   if (!resolved.ok) return resolved.response;
   const { ctx: sctx } = resolved;

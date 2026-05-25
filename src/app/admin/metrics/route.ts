@@ -12,7 +12,7 @@
  *     the private network or with the bearer token.
  */
 
-import { renderMetrics, METRICS_CONTENT_TYPE } from '@/lib/metrics';
+import { renderMetrics, METRICS_CONTENT_TYPE, refreshObservabilityGauges } from '@/lib/metrics';
 import { env } from '@/lib/env';
 import { problem } from '@/lib/errors';
 
@@ -43,6 +43,12 @@ export async function GET(req: Request): Promise<Response> {
   } else if (!isLoopback(req)) {
     return problem(403, 'forbidden', 'Metrics endpoint is restricted to loopback unless METRICS_TOKEN is set.');
   }
+
+  // Refresh the point-in-time gauges (queue depth, db pool) before serializing
+  // so the scrape contains current data. Failures inside the refresh are
+  // contained per-gauge (see refreshObservabilityGauges) so we never block
+  // the scrape on a flaky dependency.
+  await refreshObservabilityGauges();
 
   const body = await renderMetrics();
   return new Response(body, {

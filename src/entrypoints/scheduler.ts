@@ -3,8 +3,13 @@ import { Queue } from 'bullmq';
 import { logger } from '@/lib/logger';
 import { redis } from '@/lib/redis';
 import { QUEUE_NAMES } from '@/queue/queues';
+import { initSentry, captureException } from '@/lib/sentry';
 
 async function main(): Promise<void> {
+  // Initialise Sentry BEFORE constructing any Queues — that way a misconfigured
+  // Redis URL during boot is still reported. No-ops when SENTRY_DSN is unset.
+  await initSentry();
+
   logger.info({ role: 'scheduler' }, 'scheduler starting');
 
   const sweepQueue = new Queue(QUEUE_NAMES.reservationTtlSweep, { connection: redis });
@@ -115,6 +120,7 @@ async function main(): Promise<void> {
 }
 
 main().catch(err => {
+  captureException(err, { component: 'scheduler-main' });
   logger.error({ err }, 'scheduler failed');
   process.exit(1);
 });

@@ -28,6 +28,7 @@ import { z } from 'zod';
 import { startCheckout } from '@/modules/checkout/checkout';
 import { getCart } from '@/modules/cart/cart';
 import { withIdempotency } from '@/lib/idempotency';
+import { withRateLimit } from '@/lib/rate-limit';
 import { problem } from '@/lib/errors';
 import {
   attachCartSidCookie,
@@ -46,6 +47,11 @@ const bodySchema = z
   .strict();
 
 export async function POST(req: Request): Promise<NextResponse> {
+  // Per-IP rate limit: 20/min. Checkout starts are expensive (price + reserve
+  // + mint provider intent) so we cap them tighter than cart mutations.
+  const limited = await withRateLimit(req, { limit: 20, windowSeconds: 60 });
+  if (limited) return limited;
+
   const resolved = await resolveStorefrontContext(req);
   if (!resolved.ok) return resolved.response;
   const { ctx: sctx } = resolved;

@@ -9,19 +9,26 @@ import { inventoryAlerts } from '@/queue/jobs/inventory-alerts';
 import { ordersStalePaymentSweep } from '@/queue/jobs/orders-stale-payment-sweep';
 import { webhookDispatch } from '@/queue/jobs/webhook-dispatch';
 import { imagePostProcess } from '@/queue/jobs/image-post-process';
+import { csvImport } from '@/queue/jobs/csv-import';
+import { initSentry, captureException } from '@/lib/sentry';
 import {
   startInventoryAlertsListener,
   type InventoryAlertsListener,
 } from '@/modules/inventory/alerts';
 
 // Queues that still rely on SP-1 stub handlers (real processors land in later SPs).
+// csv.imports moved out — it now has a real consumer (SP-6 Task 20).
 const STUB_QUEUES = [
   QUEUE_NAMES.emails,
-  QUEUE_NAMES.csvImports,
   QUEUE_NAMES.searchReindex,
 ] as const;
 
 async function main(): Promise<void> {
+  // Sentry init must happen BEFORE we start spinning up workers / opening the
+  // Postgres LISTEN client — otherwise startup failures bypass error reporting.
+  // initSentry() is a no-op when SENTRY_DSN is unset (see src/lib/sentry.ts).
+  await initSentry();
+
   logger.info({ role: 'worker' }, 'worker starting');
 
   const workers: Worker[] = [];
@@ -66,6 +73,13 @@ async function main(): Promise<void> {
     }),
   );
 
+  // Real SP-6 processor: csv.imports consumes admin product CSV uploads.
+  workers.push(
+    new Worker(QUEUE_NAMES.csvImports, csvImport, {
+      connection: makeRedisConnection(),
+    }),
+  );
+
   // Stub processors for queues that don't have real handlers yet. Touching
   // the Queue ensures the BullMQ key exists in Redis so producers can enqueue.
   for (const name of STUB_QUEUES) {
@@ -87,8 +101,24 @@ async function main(): Promise<void> {
   try {
     alertsListener = await startInventoryAlertsListener();
   } catch (err) {
+    captureException(err, { component: 'inventory-alerts-listener' });
     logger.error({ err }, 'failed to start inventory alerts listener');
     throw err;
+  }
+
+  // Surface uncaught worker-level errors to Sentry. Without this BullMQ swallows
+  // them into the job result and a flapping handler can go unnoticed.
+  for (const w of workers) {
+    w.on('failed', (job, err) => {
+      captureException(err, {
+        component: 'bullmq-worker',
+        queue: w.name,
+        jobId: job?.id,
+      });
+    });
+    w.on('error', err => {
+      captureException(err, { component: 'bullmq-worker', queue: w.name });
+    });
   }
 
   const shutdown = (signal: string): void => {
@@ -120,6 +150,7 @@ async function main(): Promise<void> {
         QUEUE_NAMES.ordersStalePaymentSweep,
         QUEUE_NAMES.webhookDispatch,
         QUEUE_NAMES.imagePostProcess,
+        QUEUE_NAMES.csvImports,
       ],
       stubs: STUB_QUEUES,
     },
@@ -128,6 +159,7 @@ async function main(): Promise<void> {
 }
 
 main().catch(err => {
+  captureException(err, { component: 'worker-main' });
   logger.error({ err }, 'worker failed to start');
   process.exit(1);
 });
