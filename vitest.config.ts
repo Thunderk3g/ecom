@@ -9,6 +9,9 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     setupFiles: ['tests/_setup/env.ts'],
     testTimeout: 15_000,
+    // resetAndMigrate drops the schema and replays 18+ migrations per test
+    // file; the default 10s hook timeout isn't enough on cold runs.
+    hookTimeout: 60_000,
     // Tests share one Postgres schema; resetAndMigrate drops/recreates it,
     // so files must not run in parallel or they stomp on each other.
     fileParallelism: false,

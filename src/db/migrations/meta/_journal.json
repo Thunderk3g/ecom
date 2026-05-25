@@ -36,6 +36,132 @@
       "when": 1777024230164,
       "tag": "0004_enable_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779449420733,
+      "tag": "0005_catalog",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779449420734,
+      "tag": "0006_catalog_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779449420735,
+      "tag": "0007_catalog_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779449566725,
+      "tag": "0008_inventory",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779449566726,
+      "tag": "0009_inventory_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779449566727,
+      "tag": "0010_inventory_triggers",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779515315895,
+      "tag": "0011_cart_checkout",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1779515315896,
+      "tag": "0012_cart_checkout_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1779515315897,
+      "tag": "0013_cart_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1779515315898,
+      "tag": "0014_orders_skeleton",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1779515315899,
+      "tag": "0015_payment_intents_cart_fk_fix",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1779519107348,
+      "tag": "0016_order_lifecycle",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1779519107349,
+      "tag": "0017_order_lifecycle_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1779519107350,
+      "tag": "0018_state_machine",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1779689293829,
+      "tag": "0019_assets",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1779689293830,
+      "tag": "0020_assets_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1779689471489,
+      "tag": "0021_cms",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1779689471490,
+      "tag": "0022_cms_rls",
+      "breakpoints": true
     }
   ]
 }

@@ -24,15 +24,21 @@
     "scheduler": "tsx src/entrypoints/scheduler.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1053.0",
+    "@aws-sdk/s3-request-presigner": "^3.1053.0",
     "@node-rs/argon2": "^2.0.2",
+    "@sentry/node": "^10.53.1",
     "bullmq": "^5.76.1",
     "drizzle-orm": "^0.45.2",
     "ioredis": "^5.10.1",
     "next": "^15.0.3",
     "pino": "^10.3.1",
     "postgres": "^3.4.9",
+    "prom-client": "^15.1.3",
+    "razorpay": "^2.9.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "stripe": "^22.1.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {

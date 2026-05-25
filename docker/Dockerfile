@@ -16,8 +16,14 @@ RUN pnpm build
 # Standalone output produced under .next/standalone when NEXT_STANDALONE=1
 
 FROM node:${NODE_VERSION}-alpine AS runtime
+# tini = PID 1 reaper so SIGTERM reaches node/tsx cleanly (graceful BullMQ
+# worker drain, Next shutdown). wget (busybox) is used by HEALTHCHECK below.
+RUN apk add --no-cache tini
 RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
+ENV NODE_ENV=production \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
 
 # Copy standalone server + public + static
 COPY --from=build --chown=app:app /app/.next/standalone ./
@@ -35,5 +41,9 @@ RUN chmod +x /entrypoint.sh
 
 USER app
 EXPOSE 3000
-HEALTHCHECK --interval=10s --timeout=3s CMD wget -qO- http://127.0.0.1:3000/healthz || exit 1
-ENTRYPOINT ["/entrypoint.sh"]
+# --start-period gives the standalone server / tsx workers time to boot before
+# the first probe counts against health. worker/scheduler roles don't serve
+# HTTP, so /healthz only meaningfully gates the web role on Render.
+HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/healthz || exit 1
+ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]

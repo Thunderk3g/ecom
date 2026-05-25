@@ -9,6 +9,34 @@ const schema = z.object({
   COOKIE_DOMAIN: z.string().min(1),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
   PORT: z.coerce.number().int().positive().default(3000),
+  // Payment provider credentials. All optional in dev/test — the matching
+  // PaymentProvider constructor throws with a clear message if it can't find
+  // its keys at use-time. Production deployments must set the keys for the
+  // providers they actually enable in site_config.
+  RAZORPAY_KEY_ID: z.string().min(1).optional(),
+  RAZORPAY_KEY_SECRET: z.string().min(1).optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // Observability / hardening (SP-9). All optional: the platform runs without
+  // them and degrades gracefully (metrics route falls back to localhost-only,
+  // Sentry no-ops, rate limit uses its default).
+  METRICS_TOKEN: z.string().min(1).optional(),
+  RATE_LIMIT_PER_MIN: z.coerce.number().int().positive().default(120),
+  SENTRY_DSN: z.string().url().optional(),
+  // SP-8 media pipeline. All optional in dev/test — the selected MediaProvider
+  // throws with a clear message at first use if a real provider is chosen
+  // without its keys. `MEDIA_PROVIDER` defaults to 'stub' so tests + local dev
+  // need no R2/imgproxy credentials and never touch the network.
+  MEDIA_PROVIDER: z.enum(['r2-imgproxy', 'stub']).default('stub'),
+  R2_ACCOUNT_ID: z.string().min(1).optional(),
+  R2_ACCESS_KEY_ID: z.string().min(1).optional(),
+  R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  R2_BUCKET: z.string().min(1).optional(),
+  R2_PUBLIC_BASE_URL: z.string().url().optional(),
+  IMGPROXY_BASE_URL: z.string().url().optional(),
+  IMGPROXY_KEY: z.string().min(1).optional(),
+  IMGPROXY_SALT: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof schema>;
