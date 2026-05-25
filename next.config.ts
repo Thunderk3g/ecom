@@ -5,6 +5,10 @@ const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   typedRoutes: true,
+  images: {
+    loader: 'custom',
+    loaderFile: './src/lib/image-loader.ts',
+  },
 };
 
 export default config;

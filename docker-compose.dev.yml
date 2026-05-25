@@ -25,5 +25,14 @@ services:
       timeout: 3s
       retries: 10
 
+  imgproxy:
+    image: darthsim/imgproxy:v3
+    environment:
+      IMGPROXY_KEY: dev_imgproxy_key
+      IMGPROXY_SALT: dev_imgproxy_salt
+      IMGPROXY_BIND: ":8080"
+    # Host port 8081 keeps 8080 free for other local services.
+    ports: ["8081:8080"]
+
 volumes:
   pgdata:
