@@ -27,7 +27,13 @@ export async function initSentry(): Promise<void> {
 
   initPromise = (async () => {
     try {
-      const mod = await import('@sentry/node');
+      // `webpackIgnore` keeps Next's bundler from pulling @sentry/node (and its
+      // OpenTelemetry / node-internal deps like diagnostics_channel,
+      // import-in-the-middle) into the server graph — that bundling is what
+      // 500'd every route. Sentry is disabled by default (no DSN) and this
+      // import only resolves at runtime, from node_modules, when SENTRY_DSN is
+      // set. Re-enable observability purely by configuring the env var.
+      const mod = await import(/* webpackIgnore: true */ '@sentry/node');
       mod.init({
         dsn: env.SENTRY_DSN,
         environment: env.NODE_ENV,

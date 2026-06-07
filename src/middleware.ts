@@ -30,6 +30,19 @@ const ADMIN_RATE_WINDOW_SECONDS = 60;
  * tighten or extend this per-route via their own response headers. This default
  * is the floor applied to everything the matcher covers.
  */
+// Next.js dev mode (react-refresh / HMR) evaluates code via `eval` and injects
+// inline bootstrap scripts, so the strict production `script-src 'self'` would
+// break the dev server with a CSP violation. We relax script-src ONLY when not
+// in production; the shipped header stays strict ('self' with no eval/inline).
+const DEV = process.env.NODE_ENV !== 'production';
+const SCRIPT_SRC = DEV
+  ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
+  : "script-src 'self'";
+const CONNECT_SRC = DEV
+  ? // HMR websocket + dev overlay need ws:/wss: back to the dev server.
+    "connect-src 'self' ws: wss:"
+  : "connect-src 'self'";
+
 const BASELINE_CSP = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -37,8 +50,8 @@ const BASELINE_CSP = [
   "object-src 'none'",
   "img-src 'self' data: blob:",
   "style-src 'self' 'unsafe-inline'",
-  "script-src 'self'",
-  "connect-src 'self'",
+  SCRIPT_SRC,
+  CONNECT_SRC,
   "form-action 'self'",
 ].join('; ');
 
