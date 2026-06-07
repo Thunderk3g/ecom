@@ -4,16 +4,16 @@ import { ShoppingBag, Search, User } from 'lucide-react';
 
 import type { SiteConfig } from '@/platform.defaults';
 import type { NavItem } from '@/modules/cms/navigation';
-import { Separator } from '@/components/ui/separator';
 
 /**
- * Storefront chrome: themeable header + footer wrapping page content.
+ * Storefront chrome — Plume design system.
  *
  * Server component. The storefront route-group layout resolves the tenant,
  * loads `site_config` and the header/footer nav menus, and passes them in.
- * Brand colors and fonts come from the per-tenant CSS vars injected at SSR by
- * the root layout (see globals.css), so this shell only consumes semantic
- * Tailwind tokens (`bg-background`, `text-foreground`, `bg-brand`, `font-serif`).
+ * Visual styling comes from the vendored Plume CSS (src/styles/plume/*),
+ * consumed via its semantic classes (`.site-header`, `.logo`, `.mainnav`,
+ * `.site-footer`); brand colours/fonts still resolve from the per-tenant CSS
+ * vars injected at SSR by the root layout.
  */
 export type AppShellProps = {
   config: SiteConfig;
@@ -32,79 +32,72 @@ export function AppShell({
   const tagline = config.brand.tagline;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center gap-6">
-          <Link
-            href="/"
-            className="font-serif text-xl font-semibold tracking-tight text-brand"
-          >
-            {brandName}
-          </Link>
+    <div className="stack" style={{ minHeight: '100vh' }}>
+      <div className="topbar">
+        <div className="wrap-wide">
+          <span>Complimentary shipping over ₹999 · Hand-finished in small batches</span>
+        </div>
+      </div>
 
-          <nav className="hidden items-center gap-5 text-sm md:flex">
-            {headerNav.map((item, i) => (
-              <NavLink key={`${item.label}-${i}`} item={item} />
-            ))}
-          </nav>
-
-          <div className="ml-auto flex items-center gap-1">
-            <form action="/search" className="hidden md:block">
-              <label className="relative block">
-                <span className="sr-only">Search</span>
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="search"
-                  name="q"
-                  placeholder="Search products…"
-                  className="h-9 w-56 rounded-md border border-input bg-transparent pl-8 pr-3 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
-              </label>
+      <header className="site-header">
+        <div className="wrap-wide">
+          <div className="hdr-main">
+            <form action="/search" className="search hide-sm" style={{ maxWidth: 280 }}>
+              <Search aria-hidden />
+              <input type="search" name="q" placeholder="Search the catalogue…" aria-label="Search" />
             </form>
 
-            <Link
-              href="/account"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground"
-              aria-label="Account"
-            >
-              <User className="h-5 w-5" />
+            <Link href="/" className="logo">
+              {brandName}
+              {tagline ? <span className="sub">{tagline}</span> : null}
             </Link>
-            <Link
-              href="/cart"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground"
-              aria-label="Cart"
-            >
-              <ShoppingBag className="h-5 w-5" />
-            </Link>
+
+            <div className="hdr-icons">
+              <Link href="/account" className="icon-btn" aria-label="Account">
+                <User aria-hidden />
+              </Link>
+              <Link href="/cart" className="icon-btn" aria-label="Cart">
+                <ShoppingBag aria-hidden />
+                <span className="cart-count">0</span>
+              </Link>
+            </div>
           </div>
+
+          {headerNav.length > 0 ? (
+            <nav className="mainnav">
+              {headerNav.map((item, i) => (
+                <NavLink key={`${item.label}-${i}`} item={item} />
+              ))}
+            </nav>
+          ) : null}
         </div>
       </header>
 
-      <main className="flex-1">{children}</main>
+      <main className="grow">{children}</main>
 
-      <footer className="border-t bg-background">
-        <div className="container py-10">
-          <div className="flex flex-col gap-8 md:flex-row md:justify-between">
-            <div className="max-w-xs">
-              <div className="font-serif text-lg font-semibold text-brand">
-                {brandName}
-              </div>
+      <footer className="site-footer">
+        <div className="wrap-wide">
+          <div className="foot-grid">
+            <div>
+              <div className="foot-logo">{brandName}</div>
               {tagline ? (
-                <p className="mt-2 text-sm text-muted-foreground">{tagline}</p>
+                <p className="meta" style={{ marginTop: 14, maxWidth: '34ch', color: 'rgba(255,255,255,.6)' }}>
+                  {tagline}
+                </p>
               ) : null}
+              <form className="news" onSubmit={undefined}>
+                <input type="email" name="email" placeholder="Your email" aria-label="Email" />
+                <button type="submit">Join</button>
+              </form>
             </div>
-            {footerNav.length > 0 ? (
-              <nav className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm sm:grid-cols-3">
-                {footerNav.map((item, i) => (
-                  <FooterColumn key={`${item.label}-${i}`} item={item} />
-                ))}
-              </nav>
-            ) : null}
+            {footerNav.map((item, i) => (
+              <FooterColumn key={`${item.label}-${i}`} item={item} />
+            ))}
           </div>
-          <Separator className="my-6" />
-          <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} {brandName}. All rights reserved.
-          </p>
+          <div className="foot-bot">
+            <span>&copy; {new Date().getFullYear()} {brandName}. All rights reserved.</span>
+            <span>Made with care · Paper goods, properly.</span>
+          </div>
         </div>
       </footer>
     </div>
@@ -113,34 +106,31 @@ export function AppShell({
 
 function NavLink({ item }: { item: NavItem }) {
   if (!item.href) {
-    return <span className="text-muted-foreground">{item.label}</span>;
+    return <span className="muted">{item.label}</span>;
   }
   return (
-    <Link
-      href={item.href as Parameters<typeof Link>[0]['href']}
-      className="text-foreground/80 transition-colors hover:text-foreground"
-    >
-      {item.label}
-    </Link>
+    <Link href={item.href as Parameters<typeof Link>[0]['href']}>{item.label}</Link>
   );
 }
 
 function FooterColumn({ item }: { item: NavItem }) {
   return (
-    <div className="flex flex-col gap-2">
-      {item.href ? (
-        <Link
-          href={item.href as Parameters<typeof Link>[0]['href']}
-          className="font-medium text-foreground hover:underline"
-        >
-          {item.label}
-        </Link>
-      ) : (
-        <span className="font-medium text-foreground">{item.label}</span>
-      )}
-      {item.children?.map((child, i) => (
-        <NavLink key={`${child.label}-${i}`} item={child} />
-      ))}
+    <div>
+      <h5>{item.label}</h5>
+      <div className="foot-links">
+        {item.children?.map((child, i) =>
+          child.href ? (
+            <Link
+              key={`${child.label}-${i}`}
+              href={child.href as Parameters<typeof Link>[0]['href']}
+            >
+              {child.label}
+            </Link>
+          ) : (
+            <span key={`${child.label}-${i}`}>{child.label}</span>
+          ),
+        )}
+      </div>
     </div>
   );
 }

@@ -1,0 +1,20 @@
+/* ============================================================
+   PLUME — app integration overrides
+   Loaded LAST (after styles.css / store-pages.css / admin.css) so these
+   declarations win the cascade. The design CSS hardcoded the Google-hosted
+   "Playfair Display" / "Hanken Grotesk" families; our strict CSP forbids the
+   Google Fonts <link>, so we self-host both via next/font and re-point the
+   design system's --serif / --sans at the generated font-variable stacks.
+   ============================================================ */
+:root {
+  --serif: var(--font-playfair), "Playfair Display", Georgia, serif;
+  --sans: var(--font-hanken), "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+}
+
+/* The design system owns the page background + base type. Re-assert it here so
+   it overrides globals.css's `@apply bg-background ...` on body. */
+body {
+  font-family: var(--sans);
+  background: var(--paper);
+  color: var(--ink);
+}

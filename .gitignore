@@ -29,3 +29,4 @@ coverage/
 
 # drizzle
 drizzle/meta/_journal.json.bak
+.design-ref/
