@@ -1,22 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { getOrderByNumber } from '@/modules/checkout/orders';
 import { getOrderTimeline } from '@/modules/orders/events';
 import type { Address } from '@/db/schema/carts';
 import { formatMoney } from '../../../_lib/money';
 import { getAccountContext } from '../../_lib';
+import { AccountNav } from '../../_components/AccountNav';
+import { OrderStatusBadge } from '../../_components/OrderStatusBadge';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,151 +52,151 @@ export default async function OrderDetailPage({
     'refunded',
   ]);
   const customerTimeline = timeline.filter(ev => visibleKinds.has(ev.kind));
+  const lastIndex = customerTimeline.length - 1;
 
   return (
-    <div className="space-y-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            Order
-          </p>
-          <h1 className="font-serif text-3xl font-semibold tracking-tight text-brand">
-            {order.number}
+    <>
+      <div className="crumbs" style={{ paddingTop: '6px' }}>
+        <Link href="/account">Account</Link>
+        <span className="sep">/</span>
+        <Link href="/account/orders">Orders</Link>
+        <span className="sep">/</span>
+        <span style={{ color: 'var(--ink)' }}>{order.number}</span>
+      </div>
+
+      <div
+        className="between"
+        style={{ margin: '16px 0 26px', alignItems: 'flex-end' }}
+      >
+        <div>
+          <h1 className="h-lg">
+            Order <em>{order.number}</em>
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Placed {formatPlacedAt(order.placedAt)}
-          </p>
+          <div className="row" style={{ gap: '12px', marginTop: '8px' }}>
+            <OrderStatusBadge status={order.status} />
+            <span className="meta">Placed {formatPlacedAt(order.placedAt)}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <OrderStatusBadge status={order.status} />
-          <Button asChild variant="outline" size="sm">
-            <Link href="/account/orders">All orders</Link>
-          </Button>
-        </div>
-      </header>
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Unit</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {order.items.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            SKU {item.sku}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {item.qty}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatMoney(item.unitPriceCents, config)}
-                      </TableCell>
-                      <TableCell className="text-right font-medium tabular-nums">
-                        {formatMoney(item.lineTotalCents, config)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <AddressCard title="Shipping address" address={order.shippingAddress} />
-            <AddressCard title="Billing address" address={order.billingAddress} />
+      <div className="acct-grid" style={{ gridTemplateColumns: '1fr 320px' }}>
+        <div>
+          {/* Tracking timeline */}
+          <div className="surface pad" style={{ marginBottom: '22px' }}>
+            <h3
+              className="h-md"
+              style={{ fontFamily: 'var(--serif)', marginBottom: '20px' }}
+            >
+              Tracking
+            </h3>
+            {customerTimeline.length === 0 ? (
+              <p className="meta">No status updates yet.</p>
+            ) : (
+              <div className="timeline">
+                {customerTimeline.map((ev, i) => (
+                  <div
+                    key={ev.id}
+                    className={`tl-item ${i === lastIndex ? 'cur' : 'done'}`}
+                  >
+                    <div className="tl-mark">
+                      <span className="tl-dot" />
+                      {i !== lastIndex ? <span className="tl-line" /> : null}
+                    </div>
+                    <div className="tl-body">
+                      <div className="t" style={{ textTransform: 'capitalize' }}>
+                        {ev.kind.replace(/[._]/g, ' ')}
+                      </div>
+                      <div className="s">{formatTimelineAt(ev.createdAt)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <Card>
-            <CardContent className="space-y-4 p-6">
-              <h2 className="font-medium">Status timeline</h2>
-              {customerTimeline.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No status updates yet.
-                </p>
-              ) : (
-                <ol className="space-y-3">
-                  {customerTimeline.map(ev => (
-                    <li key={ev.id} className="flex gap-3 text-sm">
-                      <span
-                        aria-hidden
-                        className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand"
-                      />
-                      <div className="space-y-0.5">
-                        <p className="capitalize">
-                          {ev.kind.replace(/[._]/g, ' ')}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatTimelineAt(ev.createdAt)}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </CardContent>
-          </Card>
+          {/* Items */}
+          <div className="surface" style={{ overflow: 'hidden' }}>
+            <table className="dtable">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th className="num">Qty</th>
+                  <th className="num">Unit</th>
+                  <th className="num">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {order.items.map(item => (
+                  <tr key={item.id}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{item.name}</div>
+                      <div className="meta">SKU {item.sku}</div>
+                    </td>
+                    <td className="num">{item.qty}</td>
+                    <td className="num">{formatMoney(item.unitPriceCents, config)}</td>
+                    <td className="num" style={{ fontWeight: 600 }}>
+                      {formatMoney(item.lineTotalCents, config)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <Card className="h-fit">
-          <CardContent className="space-y-4 p-6">
-            <h2 className="font-medium">Summary</h2>
-            <dl className="space-y-2 text-sm">
-              <Row
-                label="Subtotal"
-                value={formatMoney(order.subtotalCents, config)}
-              />
-              {order.discountCents > 0 ? (
-                <Row
-                  label="Discount"
-                  value={`−${formatMoney(order.discountCents, config)}`}
-                />
-              ) : null}
-              <Row label="Tax" value={formatMoney(order.taxCents, config)} />
-              <Row
-                label="Shipping"
-                value={formatMoney(order.shippingCents, config)}
-              />
-            </dl>
-            <Separator />
-            <div className="flex items-center justify-between text-base font-semibold">
+        {/* Side: summary + addresses */}
+        <aside className="stack" style={{ gap: '16px' }}>
+          <div className="surface pad">
+            <h4 className="cap muted" style={{ marginBottom: '12px' }}>
+              Summary
+            </h4>
+            <div className="sum-line">
+              <span>Subtotal</span>
+              <span>{formatMoney(order.subtotalCents, config)}</span>
+            </div>
+            {order.discountCents > 0 ? (
+              <div className="sum-line">
+                <span>Discount</span>
+                <span style={{ color: 'var(--good)' }}>
+                  −{formatMoney(order.discountCents, config)}
+                </span>
+              </div>
+            ) : null}
+            <div className="sum-line">
+              <span>Tax</span>
+              <span>{formatMoney(order.taxCents, config)}</span>
+            </div>
+            <div className="sum-line">
+              <span>Shipping</span>
+              <span>{formatMoney(order.shippingCents, config)}</span>
+            </div>
+            <div className="sum-line total">
               <span>Total</span>
               <span>{formatMoney(order.totalCents, config)}</span>
             </div>
             {order.couponCode ? (
-              <p className="rounded-md bg-brand/5 px-3 py-2 text-xs text-muted-foreground">
-                Coupon <span className="font-medium">{order.couponCode}</span>
+              <p className="meta" style={{ marginTop: '12px' }}>
+                Coupon <span style={{ fontWeight: 600 }}>{order.couponCode}</span>
               </p>
             ) : null}
-            <dl className="space-y-2 pt-2 text-xs text-muted-foreground">
-              <div className="flex justify-between">
-                <dt>Payment</dt>
-                <dd className="capitalize">{order.paymentStatus}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>Fulfillment</dt>
-                <dd className="capitalize">
-                  {order.fulfillmentStatus.replace(/_/g, ' ')}
-                </dd>
-              </div>
-            </dl>
-          </CardContent>
-        </Card>
+            <div className="sum-line" style={{ marginTop: '6px' }}>
+              <span>Payment</span>
+              <span style={{ textTransform: 'capitalize' }}>{order.paymentStatus}</span>
+            </div>
+            <div className="sum-line">
+              <span>Fulfillment</span>
+              <span style={{ textTransform: 'capitalize' }}>
+                {order.fulfillmentStatus.replace(/_/g, ' ')}
+              </span>
+            </div>
+          </div>
+
+          <AddressCard title="Shipping to" address={order.shippingAddress} />
+          <AddressCard title="Billing" address={order.billingAddress} />
+        </aside>
       </div>
-    </div>
+      <div style={{ height: '40px' }} />
+    </>
   );
 }
 
@@ -218,51 +208,36 @@ function AddressCard({
   address: Address | null;
 }) {
   return (
-    <Card>
-      <CardContent className="space-y-2 p-6">
-        <h3 className="font-medium">{title}</h3>
-        {address ? (
-          <address className="text-sm not-italic leading-relaxed text-muted-foreground">
-            <span className="block font-medium text-foreground">
-              {address.name}
-            </span>
-            <span className="block">{address.line1}</span>
-            {address.line2 ? <span className="block">{address.line2}</span> : null}
-            <span className="block">
-              {address.city}, {address.region} {address.postal}
-            </span>
-            <span className="block">{address.country}</span>
-            {address.phone ? <span className="block">{address.phone}</span> : null}
-          </address>
-        ) : (
-          <p className="text-sm text-muted-foreground">No address on file.</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function OrderStatusBadge({ status }: { status: string }) {
-  const variant: 'default' | 'secondary' | 'destructive' | 'outline' =
-    status === 'cancelled'
-      ? 'destructive'
-      : status === 'refunded'
-        ? 'outline'
-        : status === 'pending_payment'
-          ? 'secondary'
-          : 'default';
-  return (
-    <Badge variant={variant} className="capitalize">
-      {status.replace(/_/g, ' ')}
-    </Badge>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="tabular-nums">{value}</dd>
+    <div className="surface pad">
+      <h4 className="cap muted" style={{ marginBottom: '10px' }}>
+        {title}
+      </h4>
+      {address ? (
+        <address style={{ fontStyle: 'normal' }}>
+          <div style={{ fontWeight: 600, fontSize: '14px' }}>{address.name}</div>
+          <div className="meta" style={{ lineHeight: 1.6, marginTop: '3px' }}>
+            {address.line1}
+            <br />
+            {address.line2 ? (
+              <>
+                {address.line2}
+                <br />
+              </>
+            ) : null}
+            {address.city}, {address.region} {address.postal}
+            <br />
+            {address.country}
+            {address.phone ? (
+              <>
+                <br />
+                {address.phone}
+              </>
+            ) : null}
+          </div>
+        </address>
+      ) : (
+        <p className="meta">No address on file.</p>
+      )}
     </div>
   );
 }

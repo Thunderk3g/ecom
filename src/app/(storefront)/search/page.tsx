@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { searchProducts } from '@/modules/catalog/search';
-import { Button } from '@/components/ui/button';
-import { ProductCard } from '@/components/storefront/ProductCard';
 import { SearchBox } from '@/components/storefront/SearchBox';
+import { formatMoney } from '../_lib/money';
 import { getStoreContext } from '../_lib/context';
 import { loadProductDisplays } from '../_lib/product-pricing';
 
@@ -43,34 +42,88 @@ export default async function SearchPage({
     : null;
 
   return (
-    <div className="container py-10">
-      <div className="mb-8">
+    <div className="wrap-wide section">
+      <div style={{ marginBottom: 'clamp(24px,4vw,40px)' }}>
+        <span className="eyebrow">Search</span>
+        <h1 className="h-lg" style={{ margin: '8px 0 20px' }}>
+          {q === '' ? (
+            'Find your next favourite'
+          ) : (
+            <>
+              Results for <em>{q}</em>
+            </>
+          )}
+        </h1>
         <SearchBox initialQuery={q} />
       </div>
 
       {q === '' ? (
-        <p className="py-16 text-center text-muted-foreground">
+        <p className="center" style={{ padding: '48px 0', color: 'var(--ink-3)' }}>
           Type a query above to search the catalog.
         </p>
       ) : displays.length === 0 ? (
-        <p className="py-16 text-center text-muted-foreground">
+        <p className="center" style={{ padding: '48px 0', color: 'var(--ink-3)' }}>
           No results for &ldquo;{q}&rdquo;.
         </p>
       ) : (
         <>
-          <h1 className="mb-6 text-lg text-muted-foreground">
-            Results for <span className="font-medium text-foreground">{q}</span>
-          </h1>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {displays.map(display => (
-              <ProductCard key={display.product.id} display={display} config={config} />
-            ))}
+          <div className="pgrid">
+            {displays.map(display => {
+              const { product, fromCents, compareAtCents } = display;
+              const onSale =
+                fromCents !== null &&
+                compareAtCents !== null &&
+                compareAtCents > fromCents;
+              return (
+                <article key={product.id} className="pcard">
+                  <Link
+                    href={`/p/${product.slug}`}
+                    className="plate"
+                    aria-label={product.name}
+                  >
+                    {onSale ? (
+                      <span className="badge badge-sale corner">Sale</span>
+                    ) : null}
+                    <span className="plate-cap">{product.name}</span>
+                  </Link>
+                  <div className="pmeta">
+                    {product.brand ? (
+                      <span className="brand">{product.brand}</span>
+                    ) : null}
+                    <Link href={`/p/${product.slug}`} className="pname">
+                      {product.name}
+                    </Link>
+                    {fromCents !== null ? (
+                      <div className="prow">
+                        {onSale ? (
+                          <>
+                            <span className="sale-price price">
+                              {formatMoney(fromCents, config)}
+                            </span>
+                            <span className="strike price">
+                              {formatMoney(compareAtCents, config)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="price">
+                            From {formatMoney(fromCents, config)}
+                          </span>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })}
           </div>
           {nextHref ? (
-            <div className="mt-10 flex justify-center">
-              <Button asChild variant="outline">
-                <Link href={nextHref as Parameters<typeof Link>[0]['href']}>Load more</Link>
-              </Button>
+            <div className="load-more">
+              <Link
+                className="btn btn-ghost"
+                href={nextHref as Parameters<typeof Link>[0]['href']}
+              >
+                Load more
+              </Link>
             </div>
           ) : null}
         </>

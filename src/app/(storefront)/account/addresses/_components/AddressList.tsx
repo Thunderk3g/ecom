@@ -2,9 +2,6 @@
 
 import { useTransition } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import type { AddressRow, DefaultSlot } from '@/modules/customers/addresses';
 import {
   deleteAddressAction,
@@ -63,27 +60,35 @@ export function AddressList({ addresses }: Props) {
 
   if (addresses.length === 0) {
     return (
-      <Card>
-        <CardContent className="space-y-3 py-12 text-center">
-          <p className="text-muted-foreground">No saved addresses yet.</p>
-          <AddressDialog
-            mode="create"
-            trigger={<Button size="sm">Add your first address</Button>}
-          />
-        </CardContent>
-      </Card>
+      <div className="surface pad" style={{ textAlign: 'center', padding: '48px 24px' }}>
+        <p className="meta" style={{ marginBottom: '14px' }}>
+          No saved addresses yet.
+        </p>
+        <AddressDialog
+          mode="create"
+          trigger={
+            <button type="button" className="btn btn-clay btn-sm">
+              Add your first address
+            </button>
+          }
+        />
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
+    <div className="stack" style={{ gap: '16px' }}>
+      <div className="row" style={{ justifyContent: 'flex-end' }}>
         <AddressDialog
           mode="create"
-          trigger={<Button size="sm">Add address</Button>}
+          trigger={
+            <button type="button" className="btn btn-ghost btn-sm">
+              + Add address
+            </button>
+          }
         />
       </div>
-      <ul className="grid gap-4 sm:grid-cols-2">
+      <ul className="grid-2" style={{ gap: '14px', listStyle: 'none', padding: 0, margin: 0 }}>
         {addresses.map(addr => {
           const initial: AddressDialogInitialValues = {
             id: addr.id,
@@ -103,67 +108,100 @@ export function AddressList({ addresses }: Props) {
               : [addr.type];
           return (
             <li key={addr.id}>
-              <Card className="h-full">
-                <CardContent className="flex h-full flex-col gap-3 p-6">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="space-y-1">
-                      <p className="font-medium">{addr.name}</p>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                        {addr.type}
-                      </p>
-                    </div>
-                    {addr.isDefault ? (
-                      <Badge variant="secondary">Default</Badge>
-                    ) : null}
-                  </div>
-                  <address className="flex-1 text-sm not-italic leading-relaxed text-muted-foreground">
-                    <span className="block">{addr.line1}</span>
-                    {addr.line2 ? (
-                      <span className="block">{addr.line2}</span>
-                    ) : null}
-                    <span className="block">
-                      {addr.city}, {addr.region} {addr.postal}
-                    </span>
-                    <span className="block">{addr.country}</span>
-                    {addr.phone ? (
-                      <span className="block">{addr.phone}</span>
-                    ) : null}
-                  </address>
-                  <div className="flex flex-wrap items-center gap-2 pt-2">
-                    <AddressDialog
-                      mode="edit"
-                      initial={initial}
-                      trigger={
-                        <Button variant="outline" size="sm" disabled={pending}>
-                          Edit
-                        </Button>
-                      }
-                    />
-                    {!addr.isDefault
-                      ? slots.map(slot => (
-                          <Button
-                            key={slot}
-                            variant="ghost"
-                            size="sm"
-                            disabled={pending}
-                            onClick={() => onSetDefault(addr.id, slot)}
-                          >
-                            Set as default {slot}
-                          </Button>
-                        ))
-                      : null}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-auto text-destructive hover:text-destructive"
-                      disabled={pending}
-                      onClick={() => onDelete(addr.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <div
+                className="surface pad"
+                style={{
+                  position: 'relative',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                {addr.isDefault ? (
+                  <span
+                    className="badge badge-soft"
+                    style={{ position: 'absolute', top: '18px', right: '18px' }}
+                  >
+                    Default
+                  </span>
+                ) : null}
+                <div className="cap muted" style={{ marginBottom: '4px', textTransform: 'capitalize' }}>
+                  {addr.type}
+                </div>
+                <div style={{ fontWeight: 600 }}>{addr.name}</div>
+                <address
+                  className="meta"
+                  style={{ fontStyle: 'normal', lineHeight: 1.6, marginTop: '2px', flex: 1 }}
+                >
+                  {addr.line1}
+                  <br />
+                  {addr.line2 ? (
+                    <>
+                      {addr.line2}
+                      <br />
+                    </>
+                  ) : null}
+                  {addr.city}, {addr.region} {addr.postal}
+                  <br />
+                  {addr.country}
+                  {addr.phone ? (
+                    <>
+                      <br />
+                      {addr.phone}
+                    </>
+                  ) : null}
+                </address>
+                <div
+                  className="row"
+                  style={{ gap: '14px', marginTop: '14px', flexWrap: 'wrap' }}
+                >
+                  <AddressDialog
+                    mode="edit"
+                    initial={initial}
+                    trigger={
+                      <button
+                        type="button"
+                        className="ucap link-u muted"
+                        disabled={pending}
+                        style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}
+                      >
+                        Edit
+                      </button>
+                    }
+                  />
+                  {!addr.isDefault
+                    ? slots.map(slot => (
+                        <button
+                          key={slot}
+                          type="button"
+                          className="ucap link-u muted"
+                          disabled={pending}
+                          onClick={() => onSetDefault(addr.id, slot)}
+                          style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}
+                        >
+                          Set default {slot}
+                        </button>
+                      ))
+                    : null}
+                  <button
+                    type="button"
+                    className="ucap link-u"
+                    disabled={pending}
+                    onClick={() => onDelete(addr.id)}
+                    style={{
+                      background: 'none',
+                      border: 0,
+                      padding: 0,
+                      cursor: 'pointer',
+                      color: 'var(--sale)',
+                      marginLeft: 'auto',
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             </li>
           );
         })}

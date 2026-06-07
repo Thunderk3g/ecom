@@ -46,39 +46,51 @@ export default async function ProductPage({
     status: v.status,
   }));
 
+  const thumbs = product.images.slice(0, 5);
+
   return (
-    <div className="container py-10">
-      <div className="grid gap-10 md:grid-cols-2">
+    <main className="wrap-wide">
+      <div className="crumbs" style={{ paddingTop: 18 }}>
+        <a href="/">Home</a>
+        <span className="sep">/</span>
+        <a href="/search">Shop</a>
+        <span className="sep">/</span>
+        <span style={{ color: 'var(--ink)' }}>{product.name}</span>
+      </div>
+
+      <div className="pdp">
         {/* Gallery — image stubs until SP-8 derivatives are wired. */}
-        <div className="space-y-4">
-          <div className="flex aspect-square items-center justify-center rounded-lg border bg-muted">
-            <span className="font-serif text-6xl text-muted-foreground/30">
-              {product.name.slice(0, 1).toUpperCase()}
-            </span>
+        <div className="pdp-gallery">
+          <div
+            className="pdp-main ph"
+            data-label={`product · ${product.name}`}
+          >
+            <div className="zoom">⊕</div>
           </div>
-          {product.images.length > 1 ? (
-            <div className="grid grid-cols-4 gap-2">
-              {product.images.slice(0, 4).map(img => (
+          {thumbs.length > 1 ? (
+            <div className="pdp-thumbs">
+              {thumbs.map((img, i) => (
                 <div
                   key={img.id}
-                  className="flex aspect-square items-center justify-center rounded-md border bg-muted text-xs text-muted-foreground/40"
-                >
-                  {img.alt ?? '—'}
-                </div>
+                  className={`pdp-thumb ph${i === 0 ? ' on' : ''}`}
+                  data-label={img.alt ?? '—'}
+                />
               ))}
             </div>
           ) : null}
         </div>
 
-        <div className="space-y-6">
+        {/* Info */}
+        <div className="pdp-info">
           {product.brand ? (
-            <span className="text-sm uppercase tracking-wide text-muted-foreground">
+            <span
+              className="brand"
+              style={{ fontSize: 13, fontWeight: 600, color: 'var(--clay-deep)' }}
+            >
               {product.brand}
             </span>
           ) : null}
-          <h1 className="font-serif text-3xl font-semibold tracking-tight text-brand">
-            {product.name}
-          </h1>
+          <h1 className="h-lg">{product.name}</h1>
 
           <ProductPurchasePanel
             variants={variants}
@@ -88,14 +100,30 @@ export default async function ProductPage({
               locale: config.locale.default,
             }}
           />
+
+          <div className="assur" style={{ marginTop: 14 }}>
+            <span>
+              <span className="dot">·</span>In stock — ready to ship
+            </span>
+            <span>
+              <span className="dot">·</span>Carbon-neutral, plastic-free packing
+            </span>
+          </div>
+
+          {product.descriptionMd ? (
+            <div className="accordion" style={{ marginTop: 24 }}>
+              <details className="acc-item" open>
+                <summary>
+                  Description <span className="pm">+</span>
+                </summary>
+                <div className="acc-body">
+                  <RichText markdown={product.descriptionMd} />
+                </div>
+              </details>
+            </div>
+          ) : null}
         </div>
       </div>
-
-      {product.descriptionMd ? (
-        <div className="mt-12 border-t pt-8">
-          <RichText markdown={product.descriptionMd} />
-        </div>
-      ) : null}
-    </div>
+    </main>
   );
 }

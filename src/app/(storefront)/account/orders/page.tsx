@@ -1,18 +1,9 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { listCustomerOrders } from '@/modules/checkout/orders';
 import { formatMoney } from '../../_lib/money';
 import { getAccountContext } from '../_lib';
+import { AccountNav } from '../_components/AccountNav';
+import { OrderStatusBadge } from '../_components/OrderStatusBadge';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,96 +39,75 @@ export default async function OrdersPage({
   );
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+    <>
+      <div style={{ paddingTop: '6px' }}>
+        <span className="eyebrow">Your account</span>
+        <h1 className="h-lg" style={{ marginTop: '8px' }}>
+          Your <em>orders</em>
+        </h1>
+      </div>
+
+      <div className="acct-grid">
+        <AccountNav current="orders" />
+
         <div>
-          <h1 className="font-serif text-3xl font-semibold tracking-tight text-brand">
-            Orders
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Every order you&apos;ve placed with us, newest first.
-          </p>
+          {items.length === 0 ? (
+            <div className="surface pad" style={{ textAlign: 'center', padding: '48px 24px' }}>
+              <p className="meta" style={{ marginBottom: '14px' }}>No orders yet.</p>
+              <Link href="/search" className="btn btn-clay btn-sm">
+                Browse the shop
+              </Link>
+            </div>
+          ) : (
+            <div className="surface" style={{ overflow: 'hidden' }}>
+              <table className="dtable">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th className="num">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map(order => (
+                    <tr key={order.id}>
+                      <td>
+                        <Link
+                          href={`/account/orders/${encodeURIComponent(order.number)}`}
+                          className="link-u"
+                          style={{ fontWeight: 600 }}
+                        >
+                          {order.number}
+                        </Link>
+                      </td>
+                      <td className="muted">{formatPlacedAt(order.placedAt)}</td>
+                      <td>
+                        <OrderStatusBadge status={order.status} />
+                      </td>
+                      <td className="num" style={{ fontWeight: 600 }}>
+                        {formatMoney(order.totalCents, config)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {nextCursor ? (
+            <div className="row" style={{ justifyContent: 'flex-end', marginTop: '20px' }}>
+              <Link
+                href={`/account/orders?after=${encodeURIComponent(nextCursor)}`}
+                className="btn btn-ghost btn-sm"
+              >
+                Next page
+              </Link>
+            </div>
+          ) : null}
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/account">Back to account</Link>
-        </Button>
-      </header>
-
-      {items.length === 0 ? (
-        <Card>
-          <CardContent className="space-y-3 py-12 text-center">
-            <p className="text-muted-foreground">No orders yet.</p>
-            <Button asChild size="sm">
-              <Link href="/search">Browse the shop</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map(order => (
-                  <TableRow key={order.id}>
-                    <TableCell>
-                      <Link
-                        href={`/account/orders/${encodeURIComponent(order.number)}`}
-                        className="font-medium hover:underline"
-                      >
-                        {order.number}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatPlacedAt(order.placedAt)}
-                    </TableCell>
-                    <TableCell>
-                      <OrderStatusBadge status={order.status} />
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatMoney(order.totalCents, config)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {nextCursor ? (
-        <div className="flex justify-end">
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/account/orders?after=${encodeURIComponent(nextCursor)}`}>
-              Next page
-            </Link>
-          </Button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function OrderStatusBadge({ status }: { status: string }) {
-  const variant: 'default' | 'secondary' | 'destructive' | 'outline' =
-    status === 'cancelled'
-      ? 'destructive'
-      : status === 'refunded'
-        ? 'outline'
-        : status === 'pending_payment'
-          ? 'secondary'
-          : 'default';
-  return (
-    <Badge variant={variant} className="capitalize">
-      {status.replace(/_/g, ' ')}
-    </Badge>
+      </div>
+    </>
   );
 }
 

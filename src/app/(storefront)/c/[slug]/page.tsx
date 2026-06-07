@@ -4,9 +4,8 @@ import type { Metadata } from 'next';
 import { getCategoryBySlug } from '@/modules/catalog/categories';
 import { listProducts, type ListProductsFilters } from '@/modules/catalog/products';
 import { computeFacets } from '@/modules/catalog/facets';
-import { Button } from '@/components/ui/button';
-import { ProductCard } from '@/components/storefront/ProductCard';
 import { FilterSidebar } from '@/components/storefront/FilterSidebar';
+import { formatMoney } from '../../_lib/money';
 import { getStoreContext } from '../../_lib/context';
 import { loadProductDisplays } from '../../_lib/product-pricing';
 
@@ -78,42 +77,108 @@ export default async function CategoryPage({
     : null;
 
   return (
-    <div className="container py-10">
-      <header className="mb-8">
-        <h1 className="font-serif text-3xl font-semibold tracking-tight text-brand">
-          {category.name}
-        </h1>
-        {category.description ? (
-          <p className="mt-2 max-w-prose text-muted-foreground">{category.description}</p>
-        ) : null}
-      </header>
-
-      <div className="flex flex-col gap-8 md:flex-row">
-        <FilterSidebar facets={facets} />
-
-        <div className="flex-1">
-          {displays.length === 0 ? (
-            <p className="py-16 text-center text-muted-foreground">
-              No products match these filters.
-            </p>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                {displays.map(display => (
-                  <ProductCard key={display.product.id} display={display} config={config} />
-                ))}
-              </div>
-              {nextHref ? (
-                <div className="mt-10 flex justify-center">
-                  <Button asChild variant="outline">
-                    <Link href={nextHref as Parameters<typeof Link>[0]['href']}>Load more</Link>
-                  </Button>
-                </div>
+    <>
+      {/* Category hero */}
+      <section className="cat-hero">
+        <div className="wrap-wide">
+          <div className="crumbs" style={{ paddingTop: 18 }}>
+            <Link href="/">Home</Link>
+            <span className="sep">/</span>
+            <Link href="/search">Shop</Link>
+            <span className="sep">/</span>
+            <span style={{ color: 'var(--ink)' }}>{category.name}</span>
+          </div>
+          <div className="cat-hero-inner">
+            <div>
+              <span className="eyebrow">The complete edit</span>
+              <h1 className="h-xl">{category.name}</h1>
+              {category.description ? (
+                <p className="lede">{category.description}</p>
               ) : null}
-            </>
-          )}
+            </div>
+            <div
+              className="ph cat-hero-art"
+              data-label={category.name}
+            />
+          </div>
+        </div>
+      </section>
+
+      <div className="wrap-wide">
+        <div className="shop-layout">
+          <FilterSidebar facets={facets} />
+
+          <div>
+            {displays.length === 0 ? (
+              <p className="section center" style={{ color: 'var(--ink-3)' }}>
+                No products match these filters.
+              </p>
+            ) : (
+              <>
+                <div className="pgrid">
+                  {displays.map(display => {
+                    const { product, fromCents, compareAtCents } = display;
+                    const onSale =
+                      fromCents !== null &&
+                      compareAtCents !== null &&
+                      compareAtCents > fromCents;
+                    return (
+                      <article key={product.id} className="pcard">
+                        <Link
+                          href={`/p/${product.slug}`}
+                          className="plate"
+                          aria-label={product.name}
+                        >
+                          {onSale ? (
+                            <span className="badge badge-sale corner">Sale</span>
+                          ) : null}
+                          <span className="plate-cap">{product.name}</span>
+                        </Link>
+                        <div className="pmeta">
+                          {product.brand ? (
+                            <span className="brand">{product.brand}</span>
+                          ) : null}
+                          <Link href={`/p/${product.slug}`} className="pname">
+                            {product.name}
+                          </Link>
+                          {fromCents !== null ? (
+                            <div className="prow">
+                              {onSale ? (
+                                <>
+                                  <span className="sale-price price">
+                                    {formatMoney(fromCents, config)}
+                                  </span>
+                                  <span className="strike price">
+                                    {formatMoney(compareAtCents, config)}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="price">
+                                  From {formatMoney(fromCents, config)}
+                                </span>
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+                {nextHref ? (
+                  <div className="load-more">
+                    <Link
+                      className="btn btn-ghost"
+                      href={nextHref as Parameters<typeof Link>[0]['href']}
+                    >
+                      Load more
+                    </Link>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,12 +1,10 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { listCustomerOrders } from '@/modules/checkout/orders';
 import { formatMoney } from '../_lib/money';
 import { getAccountContext } from './_lib';
 import { logoutAction } from './actions';
+import { AccountNav } from './_components/AccountNav';
+import { OrderStatusBadge } from './_components/OrderStatusBadge';
 
 // Personalised, per-customer view — never cache.
 export const dynamic = 'force-dynamic';
@@ -32,130 +30,113 @@ export default async function AccountPage() {
   const greetingName = customerDisplayName(customer.email);
 
   return (
-    <div className="space-y-10">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-serif text-3xl font-semibold tracking-tight text-brand">
-            Hello, {greetingName}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Manage your orders, addresses, and account details.
-          </p>
-        </div>
-        <form action={logoutAction}>
-          <Button type="submit" variant="outline" size="sm">
-            Sign out
-          </Button>
-        </form>
-      </header>
+    <>
+      <div style={{ paddingTop: '6px' }}>
+        <span className="eyebrow">Your account</span>
+        <h1 className="h-lg" style={{ marginTop: '8px' }}>
+          Hello, <em>{greetingName}</em>
+        </h1>
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
-        <Card className="h-fit">
-          <CardContent className="space-y-4 p-6">
-            <h2 className="font-medium">Account</h2>
-            <dl className="space-y-2 text-sm">
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Email</dt>
-                <dd className="truncate text-right">{customer.email}</dd>
+      <div className="acct-grid">
+        <AccountNav current="overview" logoutAction={logoutAction} />
+
+        <div>
+          {/* Stats */}
+          <div className="stat-row">
+            <div className="surface stat-card">
+              <span className="meta">Orders placed</span>
+              <div className="v">{ordersResult.items.length === 0 ? '0' : recentOrders.length}</div>
+              <span className="meta">Since {memberSince}</span>
+            </div>
+            <div className="surface stat-card">
+              <span className="meta">Member since</span>
+              <div className="v" style={{ fontSize: '22px' }}>{memberSince}</div>
+              <span className="meta">Thank you for being with us</span>
+            </div>
+            <div className="surface stat-card">
+              <span className="meta">Account</span>
+              <div className="v" style={{ fontSize: '22px' }}>Active</div>
+              <span className="meta">{customer.email}</span>
+            </div>
+          </div>
+
+          {/* Account details */}
+          <div className="surface pad" style={{ marginBottom: '26px' }}>
+            <div className="between" style={{ marginBottom: '16px' }}>
+              <h3 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+                Account details
+              </h3>
+            </div>
+            <div className="grid-2" style={{ gap: '18px' }}>
+              <div>
+                <div className="meta">Email</div>
+                <div style={{ fontWeight: 600, marginTop: '3px' }}>{customer.email}</div>
               </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Member since</dt>
-                <dd>{memberSince}</dd>
+              <div>
+                <div className="meta">Member since</div>
+                <div style={{ fontWeight: 600, marginTop: '3px' }}>{memberSince}</div>
               </div>
               {customer.phone ? (
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">Phone</dt>
-                  <dd>{customer.phone}</dd>
+                <div>
+                  <div className="meta">Phone</div>
+                  <div style={{ fontWeight: 600, marginTop: '3px' }}>{customer.phone}</div>
                 </div>
               ) : null}
-            </dl>
-            <Separator />
-            <div className="grid gap-2">
-              <Button asChild variant="outline" size="sm" className="justify-start">
-                <Link href="/account/orders">Order history</Link>
-              </Button>
-              <Button asChild variant="outline" size="sm" className="justify-start">
-                <Link href="/account/addresses">Saved addresses</Link>
-              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="font-medium">Recent orders</h2>
-              <Link
-                href="/account/orders"
-                className="text-sm text-muted-foreground hover:underline"
-              >
-                View all
+          {/* Recent orders */}
+          <div className="between" style={{ margin: '8px 0 14px' }}>
+            <h3 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+              Recent orders
+            </h3>
+            <Link href="/account/orders" className="ucap link-u muted">
+              View all
+            </Link>
+          </div>
+
+          {recentOrders.length === 0 ? (
+            <div className="surface pad" style={{ textAlign: 'center', padding: '40px 24px' }}>
+              <p className="meta" style={{ marginBottom: '14px' }}>
+                You haven&apos;t placed any orders yet.
+              </p>
+              <Link href="/search" className="btn btn-clay btn-sm">
+                Start shopping
               </Link>
             </div>
-
-            {recentOrders.length === 0 ? (
-              <div className="space-y-3 py-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  You haven&apos;t placed any orders yet.
-                </p>
-                <Button asChild size="sm">
-                  <Link href="/search">Start shopping</Link>
-                </Button>
-              </div>
-            ) : (
-              <ul className="divide-y">
-                {recentOrders.map(order => (
-                  <li
-                    key={order.id}
-                    className="flex flex-wrap items-center justify-between gap-3 py-4"
-                  >
-                    <div className="space-y-1">
-                      <Link
-                        href={`/account/orders/${encodeURIComponent(order.number)}`}
-                        className="font-medium hover:underline"
-                      >
-                        {order.number}
-                      </Link>
-                      <p className="text-xs text-muted-foreground">
-                        {formatPlacedAt(order.placedAt)} · {order.items.length} item
-                        {order.items.length === 1 ? '' : 's'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
+          ) : (
+            <div className="stack" style={{ gap: '12px' }}>
+              {recentOrders.map(order => (
+                <Link
+                  key={order.id}
+                  href={`/account/orders/${encodeURIComponent(order.number)}`}
+                  className="surface order-card"
+                >
+                  <div className="order-thumbs">
+                    <div className="ph clean" style={{ background: 'linear-gradient(150deg,#EFEADF,#E2D8C5)' }} />
+                  </div>
+                  <div>
+                    <div className="row" style={{ gap: '10px' }}>
+                      <strong style={{ fontSize: '14.5px' }}>{order.number}</strong>
                       <OrderStatusBadge status={order.status} />
-                      <span className="text-sm font-semibold">
-                        {formatMoney(order.totalCents, config)}
-                      </span>
                     </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                    <div className="meta" style={{ marginTop: '4px' }}>
+                      {order.items.length} item{order.items.length === 1 ? '' : 's'} · placed{' '}
+                      {formatPlacedAt(order.placedAt)}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 600 }}>{formatMoney(order.totalCents, config)}</div>
+                    <span className="ucap link-u muted">View →</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
-}
-
-/**
- * Map an order status to a Badge variant. Mirrors
- * `src/app/admin/(protected)/orders/_status.ts` but scoped to this surface so
- * we don't reach across the admin/storefront boundary.
- */
-function OrderStatusBadge({ status }: { status: string }) {
-  const variant: 'default' | 'secondary' | 'destructive' | 'outline' =
-    status === 'cancelled'
-      ? 'destructive'
-      : status === 'refunded'
-        ? 'outline'
-        : status === 'pending_payment'
-          ? 'secondary'
-          : 'default';
-  return (
-    <Badge variant={variant} className="capitalize">
-      {status.replace(/_/g, ' ')}
-    </Badge>
+    </>
   );
 }
 

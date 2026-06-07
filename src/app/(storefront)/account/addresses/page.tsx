@@ -1,7 +1,6 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { listAddresses } from '@/modules/customers/addresses';
 import { getAccountContext } from '../_lib';
+import { AccountNav } from '../_components/AccountNav';
 import { AddressList } from './_components/AddressList';
 
 export const dynamic = 'force-dynamic';
@@ -19,22 +18,21 @@ export default async function AddressesPage() {
   const addresses = await listAddresses(ctx.storeId, ctx.customer.id);
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-serif text-3xl font-semibold tracking-tight text-brand">
-            Addresses
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Manage your shipping and billing addresses.
-          </p>
-        </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/account">Back to account</Link>
-        </Button>
-      </header>
+    <>
+      <div style={{ paddingTop: '6px' }}>
+        <span className="eyebrow">Your account</span>
+        <h1 className="h-lg" style={{ marginTop: '8px' }}>
+          Saved <em>addresses</em>
+        </h1>
+      </div>
 
-      <AddressList addresses={addresses} />
-    </div>
+      <div className="acct-grid">
+        <AccountNav current="addresses" />
+
+        <div>
+          <AddressList addresses={addresses} />
+        </div>
+      </div>
+    </>
   );
 }

@@ -3,11 +3,6 @@
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/components/storefront/cart-context';
 import { ensureStorefrontSession } from '../_lib/session';
 
@@ -139,117 +134,223 @@ export default function CheckoutPage() {
   }
 
   if (!ready) {
-    return <div className="container py-16 text-center text-muted-foreground">Loading…</div>;
+    return (
+      <main className="wrap-wide">
+        <div className="section" style={{ textAlign: 'center', color: 'var(--ink-3)' }}>
+          Loading…
+        </div>
+      </main>
+    );
   }
 
   if (!cart || (totals?.lines.length ?? 0) === 0) {
     return (
-      <div className="container space-y-4 py-16 text-center">
-        <p className="text-muted-foreground">Your cart is empty.</p>
-        <Button asChild>
-          <Link href="/search">Browse products</Link>
-        </Button>
-      </div>
+      <main className="wrap-wide">
+        <div className="section" style={{ textAlign: 'center' }}>
+          <p className="muted" style={{ marginBottom: 18 }}>
+            Your cart is empty.
+          </p>
+          <Link href="/search" className="btn btn-clay">
+            Browse products <span className="arr">→</span>
+          </Link>
+        </div>
+      </main>
     );
   }
 
   if (result) {
     return (
-      <div className="container max-w-lg py-12">
-        <Card>
-          <CardContent className="space-y-4 p-8">
-            <h1 className="font-serif text-2xl font-semibold text-brand">Payment intent created</h1>
-            <p className="text-sm text-muted-foreground">
-              In production the {provider} SDK would now collect payment for{' '}
-              <span className="font-medium text-foreground">{money(result.totals.totalCents)}</span>.
-              The order is created by the payment webhook once the provider confirms.
-            </p>
-            <Separator />
-            <dl className="space-y-1 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Intent</dt>
-                <dd className="font-mono text-xs">{result.intentId}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Provider ref</dt>
-                <dd className="font-mono text-xs">{result.providerRef}</dd>
-              </div>
-            </dl>
-            <p className="rounded-md bg-brand/5 p-3 text-xs text-muted-foreground">
-              No live payment keys are configured in this environment. Simulate a paid order by
-              delivering the provider webhook to <code>/api/v1/webhooks/payments/{provider}</code>.
-            </p>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/account/orders">View your orders</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <main className="wrap-wide">
+        <div
+          className="surface confirm-card"
+          style={{ maxWidth: 620, margin: '20px auto 60px' }}
+        >
+          <div className="confirm-tick">✓</div>
+          <span className="eyebrow">Payment intent created</span>
+          <h2 className="h-lg" style={{ margin: '10px 0 8px' }}>
+            Almost there.
+          </h2>
+          <p className="lede" style={{ maxWidth: '46ch', margin: '0 auto 6px' }}>
+            In production the {provider} SDK would now collect payment for{' '}
+            <strong style={{ color: 'var(--ink)' }}>{money(result.totals.totalCents)}</strong>. The
+            order is created by the payment webhook once the provider confirms.
+          </p>
+          <dl
+            className="row"
+            style={{
+              justifyContent: 'center',
+              gap: 24,
+              marginTop: 18,
+              fontSize: 13,
+            }}
+          >
+            <div>
+              <dt className="meta">Intent</dt>
+              <dd className="font-mono" style={{ fontSize: 12 }}>
+                {result.intentId}
+              </dd>
+            </div>
+            <div>
+              <dt className="meta">Provider ref</dt>
+              <dd className="font-mono" style={{ fontSize: 12 }}>
+                {result.providerRef}
+              </dd>
+            </div>
+          </dl>
+          <p
+            className="surface pad meta"
+            style={{ background: 'var(--paper-2)', margin: '20px auto 0', maxWidth: '52ch' }}
+          >
+            No live payment keys are configured in this environment. Simulate a paid order by
+            delivering the provider webhook to{' '}
+            <code>/api/v1/webhooks/payments/{provider}</code>.
+          </p>
+          <div className="row" style={{ justifyContent: 'center', gap: 12, marginTop: 26 }}>
+            <Link href="/account/orders" className="btn btn-clay">
+              View your orders <span className="arr">→</span>
+            </Link>
+            <Link href="/" className="btn btn-ghost">
+              Continue shopping
+            </Link>
+          </div>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="container py-10">
-      <h1 className="mb-8 font-serif text-3xl font-semibold tracking-tight text-brand">Checkout</h1>
-      <form onSubmit={onSubmit} className="grid gap-10 lg:grid-cols-[1fr_20rem]">
-        <div className="space-y-8">
-          <section className="space-y-4">
-            <h2 className="font-medium">Shipping address</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
+    <main className="wrap-wide">
+      <div className="between" style={{ paddingTop: 24, marginBottom: 4 }}>
+        <h1 className="h-lg">Checkout</h1>
+        <Link href="/cart" className="ucap link-u muted">
+          Back to cart
+        </Link>
+      </div>
+
+      <div className="co-steps" style={{ maxWidth: 520 }}>
+        <span className="st done">
+          <span className="n">✓</span> Cart
+        </span>
+        <span className="ln" />
+        <span className="st on">
+          <span className="n">2</span> Details
+        </span>
+        <span className="ln" />
+        <span className="st">
+          <span className="n">3</span> Confirmation
+        </span>
+      </div>
+
+      <form onSubmit={onSubmit} className="checkout-grid">
+        {/* Form side */}
+        <div>
+          <div className="co-block">
+            <h3>Shipping address</h3>
+            <div className="grid-2">
               <Field label="Full name" value={address.name} onChange={v => set('name', v)} required />
               <Field label="Phone" value={address.phone} onChange={v => set('phone', v)} />
-              <div className="sm:col-span-2">
-                <Field label="Address line 1" value={address.line1} onChange={v => set('line1', v)} required />
-              </div>
-              <div className="sm:col-span-2">
-                <Field label="Address line 2" value={address.line2} onChange={v => set('line2', v)} />
-              </div>
+              <Field
+                label="Address line 1"
+                value={address.line1}
+                onChange={v => set('line1', v)}
+                required
+                full
+              />
+              <Field
+                label="Address line 2"
+                value={address.line2}
+                onChange={v => set('line2', v)}
+                full
+              />
               <Field label="City" value={address.city} onChange={v => set('city', v)} required />
-              <Field label="State / Region" value={address.region} onChange={v => set('region', v)} required />
-              <Field label="Postal code" value={address.postal} onChange={v => set('postal', v)} required />
-              <Field label="Country" value={address.country} onChange={v => set('country', v)} required />
+              <Field
+                label="State / Region"
+                value={address.region}
+                onChange={v => set('region', v)}
+                required
+              />
+              <Field
+                label="Postal code"
+                value={address.postal}
+                onChange={v => set('postal', v)}
+                required
+              />
+              <Field
+                label="Country"
+                value={address.country}
+                onChange={v => set('country', v)}
+                required
+              />
             </div>
-          </section>
+          </div>
 
-          <section className="space-y-3">
-            <h2 className="font-medium">Payment method</h2>
-            <div className="flex gap-3">
-              {(['razorpay', 'stripe'] as Provider[]).map(p => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setProvider(p)}
-                  className={`flex-1 rounded-md border px-4 py-3 text-sm capitalize transition-colors ${
-                    provider === p ? 'border-brand bg-brand/10 font-medium text-brand' : 'hover:bg-accent'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </section>
+          <div className="co-block">
+            <h3>Payment</h3>
+            {(['razorpay', 'stripe'] as Provider[]).map(p => (
+              <label key={p} className={`pay-opt${provider === p ? ' on' : ''}`}>
+                <input
+                  type="radio"
+                  name="provider"
+                  value={p}
+                  checked={provider === p}
+                  onChange={() => setProvider(p)}
+                  className="sr-only"
+                />
+                <span className="radio" />
+                <span className="grow">
+                  <strong style={{ fontSize: 14, textTransform: 'capitalize' }}>{p}</strong>
+                  <div className="meta">
+                    {p === 'razorpay'
+                      ? 'Cards, UPI, wallets & net-banking'
+                      : 'Card, Apple Pay & Google Pay'}
+                  </div>
+                </span>
+              </label>
+            ))}
+            <p className="meta" style={{ marginTop: 8 }}>
+              🔒 You&apos;ll be securely redirected to complete payment. We never store card details.
+            </p>
+          </div>
+
+          <button type="submit" className="btn btn-clay btn-lg btn-block" disabled={submitting}>
+            {submitting ? 'Processing…' : 'Place order'} <span className="arr">→</span>
+          </button>
         </div>
 
-        <Card className="h-fit">
-          <CardContent className="space-y-4 p-6">
-            <h2 className="font-medium">Order summary</h2>
-            <div className="space-y-2 text-sm">
-              <Row label="Subtotal" value={money(totals?.subtotalCents ?? 0)} />
+        {/* Summary */}
+        <aside className="summary">
+          <div className="surface pad">
+            <h3 className="h-md" style={{ fontFamily: 'var(--serif)', marginBottom: 14 }}>
+              Your order
+            </h3>
+            <div style={{ paddingTop: 14 }}>
+              <div className="sum-line">
+                <span>Subtotal</span>
+                <span>{money(totals?.subtotalCents ?? 0)}</span>
+              </div>
               {totals && totals.discountCents > 0 ? (
-                <Row label="Discount" value={`−${money(totals.discountCents)}`} />
+                <div className="sum-line">
+                  <span>Discount</span>
+                  <span style={{ color: 'var(--good)' }}>−{money(totals.discountCents)}</span>
+                </div>
               ) : null}
-              <Row label="Tax" value={money(totals?.taxCents ?? 0)} />
-              <Row label="Shipping" value={money(totals?.shippingCents ?? 0)} />
+              <div className="sum-line">
+                <span>Tax</span>
+                <span>{money(totals?.taxCents ?? 0)}</span>
+              </div>
+              <div className="sum-line">
+                <span>Shipping</span>
+                <span>{money(totals?.shippingCents ?? 0)}</span>
+              </div>
+              <div className="sum-line total">
+                <span>Total</span>
+                <span>{money(totals?.totalCents ?? 0)}</span>
+              </div>
             </div>
-            <Separator />
-            <Row label="Total" value={money(totals?.totalCents ?? 0)} strong />
-            <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-              {submitting ? 'Processing…' : 'Place order'}
-            </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </aside>
       </form>
-    </div>
+    </main>
   );
 }
 
@@ -258,36 +359,26 @@ function Field({
   value,
   onChange,
   required,
+  full,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   required?: boolean;
+  full?: boolean;
 }) {
   return (
-    <div className="space-y-1.5">
-      <Label>
+    <div className={`field${full ? ' full' : ''}`}>
+      <label>
         {label}
-        {required ? <span className="text-destructive"> *</span> : null}
-      </Label>
-      <Input value={value} onChange={e => onChange(e.target.value)} required={required} />
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-  strong,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
-  return (
-    <div className={`flex justify-between ${strong ? 'text-base font-semibold' : ''}`}>
-      <span className={strong ? '' : 'text-muted-foreground'}>{label}</span>
-      <span>{value}</span>
+        {required ? <span style={{ color: 'var(--clay)' }}> *</span> : null}
+      </label>
+      <input
+        className="input"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        required={required}
+      />
     </div>
   );
 }

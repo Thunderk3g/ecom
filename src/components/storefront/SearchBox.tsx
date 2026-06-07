@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 
 type Suggestion = { term: string; productId: string; name: string };
 
@@ -58,34 +57,54 @@ export function SearchBox({ initialQuery = '' }: { initialQuery?: string }) {
   }
 
   return (
-    <div ref={boxRef} className="relative w-full max-w-xl">
+    <div ref={boxRef} style={{ position: 'relative', width: '100%', maxWidth: 560 }}>
       <form
+        className="search"
         onSubmit={e => {
           e.preventDefault();
           submit(query);
         }}
       >
-        <label className="relative block">
-          <span className="sr-only">Search products</span>
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            onFocus={() => suggestions.length > 0 && setOpen(true)}
-            placeholder="Search products…"
-            className="pl-9"
-          />
+        <label className="sr-only" htmlFor="storefront-search">
+          Search products
         </label>
+        <Search aria-hidden="true" />
+        <input
+          id="storefront-search"
+          type="search"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onFocus={() => suggestions.length > 0 && setOpen(true)}
+          placeholder="Search products…"
+        />
       </form>
       {open && suggestions.length > 0 ? (
-        <ul className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
+        <ul
+          className="surface"
+          style={{
+            position: 'absolute',
+            zIndex: 50,
+            marginTop: 6,
+            width: '100%',
+            overflow: 'hidden',
+            listStyle: 'none',
+            padding: 6,
+          }}
+        >
           {suggestions.map(s => (
             <li key={s.productId}>
               <button
                 type="button"
-                className="block w-full px-3 py-2 text-left text-sm hover:bg-accent"
                 onClick={() => submit(s.name)}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '8px 10px',
+                  borderRadius: 'var(--r-sm)',
+                  fontSize: 14,
+                  color: 'var(--ink)',
+                }}
               >
                 {s.name}
               </button>

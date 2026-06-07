@@ -3,10 +3,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Card, CardContent } from '@/components/ui/card';
 import { useCart, type CartLine } from '@/components/storefront/cart-context';
 
 /**
@@ -40,7 +36,13 @@ export default function CartPage() {
   const fmt = useCurrencyFormatter(cart?.currency);
 
   if (!ready) {
-    return <div className="container py-16 text-center text-muted-foreground">Loading cart…</div>;
+    return (
+      <main className="wrap-wide">
+        <div className="section" style={{ textAlign: 'center', color: 'var(--ink-3)' }}>
+          Loading cart…
+        </div>
+      </main>
+    );
   }
 
   const lines = totals?.lines ?? [];
@@ -61,55 +63,78 @@ export default function CartPage() {
   }
 
   return (
-    <div className="container py-10">
-      <h1 className="mb-8 font-serif text-3xl font-semibold tracking-tight text-brand">
-        Your cart
-      </h1>
+    <main className="wrap-wide">
+      <div className="crumbs" style={{ paddingTop: 18 }}>
+        <a href="/">Home</a>
+        <span className="sep">/</span>
+        <span style={{ color: 'var(--ink)' }}>Cart</span>
+      </div>
+      <div className="between" style={{ margin: '18px 0 4px', alignItems: 'flex-end' }}>
+        <h1 className="h-lg">
+          Your cart{' '}
+          {!isEmpty ? (
+            <span
+              className="muted"
+              style={{ fontFamily: 'var(--sans)', fontSize: 18, fontWeight: 500 }}
+            >
+              · {lines.length} {lines.length === 1 ? 'item' : 'items'}
+            </span>
+          ) : null}
+        </h1>
+        <Link href="/search" className="ucap link-u muted">
+          Continue shopping
+        </Link>
+      </div>
 
       {isEmpty ? (
-        <div className="space-y-4 py-12 text-center">
-          <p className="text-muted-foreground">Your cart is empty.</p>
-          <Button asChild>
-            <Link href="/search">Browse products</Link>
-          </Button>
+        <div className="section" style={{ textAlign: 'center' }}>
+          <p className="muted" style={{ marginBottom: 18 }}>
+            Your cart is empty.
+          </p>
+          <Link href="/search" className="btn btn-clay">
+            Browse products <span className="arr">→</span>
+          </Link>
         </div>
       ) : (
-        <div className="grid gap-10 lg:grid-cols-[1fr_20rem]">
-          <ul className="divide-y">
+        <div className="cart-grid">
+          {/* Line items */}
+          <div>
             {lines.map((line: CartLine) => {
               const item = itemById.get(line.itemId);
               return (
-                <li key={line.itemId} className="flex gap-4 py-5">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-md border bg-muted text-xs text-muted-foreground/40">
-                    item
-                  </div>
-                  <div className="flex flex-1 flex-col gap-2">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium">Variant {line.variantId.slice(0, 8)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {fmt(line.unitPriceCents)} each
-                        </p>
-                      </div>
-                      <span className="text-sm font-semibold">{fmt(line.lineTotalCents)}</span>
+                <div key={line.itemId} className="cart-row">
+                  <div className="ph" data-label="item" />
+                  <div>
+                    <a
+                      href="#"
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 15,
+                        display: 'block',
+                        margin: '3px 0 2px',
+                      }}
+                    >
+                      Variant {line.variantId.slice(0, 8)}
+                    </a>
+                    <div className="meta" style={{ marginBottom: 12 }}>
+                      {fmt(line.unitPriceCents)} each
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center rounded-md border">
+                    <div className="row" style={{ gap: 18 }}>
+                      <div
+                        className="stepper"
+                        style={{ transform: 'scale(.9)', transformOrigin: 'left' }}
+                      >
                         <button
                           type="button"
-                          className="px-2.5 py-1 text-base leading-none hover:bg-accent disabled:opacity-50"
                           disabled={loading}
                           onClick={() => updateItem(line.itemId, line.qty - 1)}
                           aria-label="Decrease quantity"
                         >
                           −
                         </button>
-                        <span className="w-8 text-center text-sm tabular-nums">
-                          {item?.qty ?? line.qty}
-                        </span>
+                        <span>{item?.qty ?? line.qty}</span>
                         <button
                           type="button"
-                          className="px-2.5 py-1 text-base leading-none hover:bg-accent disabled:opacity-50"
                           disabled={loading}
                           onClick={() => updateItem(line.itemId, line.qty + 1)}
                           aria-label="Increase quantity"
@@ -117,93 +142,110 @@ export default function CartPage() {
                           +
                         </button>
                       </div>
-                      <Button
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground"
+                        className="rmv"
                         disabled={loading}
                         onClick={() => removeItem(line.itemId)}
                       >
                         Remove
-                      </Button>
+                      </button>
                     </div>
                   </div>
-                </li>
+                  <div style={{ textAlign: 'right', fontWeight: 600, fontSize: 15 }}>
+                    {fmt(line.lineTotalCents)}
+                  </div>
+                </div>
               );
             })}
-          </ul>
+          </div>
 
-          <Card className="h-fit">
-            <CardContent className="space-y-4 p-6">
-              <h2 className="font-medium">Order summary</h2>
-              <div className="space-y-2 text-sm">
-                <Row label="Subtotal" value={fmt(totals?.subtotalCents ?? 0)} />
-                {totals && totals.discountCents > 0 ? (
-                  <Row label="Discount" value={`−${fmt(totals.discountCents)}`} />
-                ) : null}
-                <Row label="Tax" value={fmt(totals?.taxCents ?? 0)} />
-                <Row
-                  label={`Shipping${totals?.shippingOption ? ` (${totals.shippingOption.label})` : ''}`}
-                  value={fmt(totals?.shippingCents ?? 0)}
-                />
-              </div>
-              <Separator />
-              <Row label="Total" value={fmt(totals?.totalCents ?? 0)} strong />
+          {/* Summary */}
+          <aside className="summary">
+            <div className="surface pad">
+              <h3 className="h-md" style={{ fontFamily: 'var(--serif)', marginBottom: 16 }}>
+                Order summary
+              </h3>
 
-              <div className="space-y-2 pt-2">
-                {cart?.couponCode ? (
-                  <div className="flex items-center justify-between rounded-md bg-brand/5 px-3 py-2 text-sm">
-                    <span>
-                      Coupon <span className="font-medium">{cart.couponCode}</span>
-                    </span>
-                    <button
-                      type="button"
-                      className="text-xs text-muted-foreground hover:underline"
-                      onClick={() => removeCoupon()}
-                    >
-                      Remove
-                    </button>
+              {cart?.couponCode ? (
+                <div className="row" style={{ gap: 8, marginBottom: 16 }}>
+                  <span className="badge badge-good">✓ {cart.couponCode} applied</span>
+                  <button
+                    type="button"
+                    className="rmv"
+                    onClick={() => removeCoupon()}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="field" style={{ marginBottom: 6 }}>
+                    <label htmlFor="coupon">Discount code</label>
                   </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <Input
+                  <div className="coupon">
+                    <input
+                      id="coupon"
+                      className="input"
                       value={coupon}
                       onChange={e => setCoupon(e.target.value)}
-                      placeholder="Coupon code"
-                      className="h-9"
+                      placeholder="e.g. WELCOME10"
                     />
-                    <Button type="button" variant="outline" size="sm" onClick={onApplyCoupon}>
+                    <button type="button" className="btn btn-ghost" onClick={onApplyCoupon}>
                       Apply
-                    </Button>
+                    </button>
                   </div>
-                )}
+                </>
+              )}
+
+              <hr className="divider" style={{ margin: '4px 0 8px' }} />
+              <div className="sum-line">
+                <span>Subtotal</span>
+                <span className="price">{fmt(totals?.subtotalCents ?? 0)}</span>
+              </div>
+              {totals && totals.discountCents > 0 ? (
+                <div className="sum-line">
+                  <span>Discount</span>
+                  <span className="price" style={{ color: 'var(--good)' }}>
+                    −{fmt(totals.discountCents)}
+                  </span>
+                </div>
+              ) : null}
+              <div className="sum-line">
+                <span>Tax</span>
+                <span className="price muted">{fmt(totals?.taxCents ?? 0)}</span>
+              </div>
+              <div className="sum-line">
+                <span>
+                  Shipping
+                  {totals?.shippingOption ? ` (${totals.shippingOption.label})` : ''}
+                </span>
+                <span className="price">{fmt(totals?.shippingCents ?? 0)}</span>
+              </div>
+              <div className="sum-line total">
+                <span>Total</span>
+                <span className="price">{fmt(totals?.totalCents ?? 0)}</span>
               </div>
 
-              <Button asChild size="lg" className="w-full">
-                <Link href="/checkout">Checkout</Link>
-              </Button>
-            </CardContent>
-          </Card>
+              <Link
+                href="/checkout"
+                className="btn btn-clay btn-block btn-lg"
+                style={{ marginTop: 18 }}
+              >
+                Checkout securely <span className="arr">→</span>
+              </Link>
+              <div
+                className="row"
+                style={{ justifyContent: 'center', gap: 14, marginTop: 16 }}
+              >
+                <span className="meta">🔒 Secure checkout</span>
+                <span className="meta">·</span>
+                <span className="meta">Razorpay / Stripe</span>
+              </div>
+            </div>
+          </aside>
         </div>
       )}
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-  strong,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
-  return (
-    <div className={`flex justify-between ${strong ? 'text-base font-semibold' : ''}`}>
-      <span className={strong ? '' : 'text-muted-foreground'}>{label}</span>
-      <span>{value}</span>
-    </div>
+    </main>
   );
 }

@@ -2,9 +2,8 @@ import Link from 'next/link';
 import { getPageBySlug } from '@/modules/cms/pages';
 import { listProducts } from '@/modules/catalog/products';
 import { getCategoryTree } from '@/modules/catalog/categories';
-import { Button } from '@/components/ui/button';
 import { CmsBlockRenderer } from '@/components/storefront/CmsBlockRenderer';
-import { ProductCard } from '@/components/storefront/ProductCard';
+import { formatMoney } from './_lib/money';
 import { getStoreContext } from './_lib/context';
 import { loadProductDisplays } from './_lib/product-pricing';
 
@@ -34,47 +33,157 @@ export default async function Home() {
 
   return (
     <>
-      <section className="border-b bg-brand/5">
-        <div className="container flex flex-col items-start gap-4 py-20 md:py-28">
-          <h1 className="max-w-2xl font-serif text-4xl font-semibold tracking-tight text-brand md:text-5xl">
-            {config.brand.name}
-          </h1>
-          {config.brand.tagline ? (
-            <p className="max-w-xl text-lg text-muted-foreground">{config.brand.tagline}</p>
-          ) : null}
-          <Button asChild size="lg" className="mt-2">
-            <Link href="/search">Browse the shop</Link>
-          </Button>
+      {/* HERO */}
+      <section className="hero-wrap">
+        <div className="wrap-wide">
+          <div className="hero">
+            <div className="hero-copy">
+              <span className="eyebrow">{config.brand.name}</span>
+              <h1 className="display">
+                Things worth
+                <br />
+                <em>writing</em> down.
+              </h1>
+              {config.brand.tagline ? (
+                <p className="lede" style={{ maxWidth: '42ch', marginTop: 8 }}>
+                  {config.brand.tagline}
+                </p>
+              ) : null}
+              <div
+                className="row"
+                style={{ gap: 12, marginTop: 30, flexWrap: 'wrap' }}
+              >
+                <Link className="btn btn-clay btn-lg" href="/search">
+                  Browse the shop <span className="arr">→</span>
+                </Link>
+              </div>
+              {categories.length > 0 ? (
+                <div className="hero-cats">
+                  {categories.map(cat => (
+                    <Link key={cat.id} href={`/c/${cat.slug}`} className="chip">
+                      {cat.name}
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div className="hero-art">
+              <div
+                className="ph"
+                data-label="Fine stationery — notebooks, pens & desk goods"
+                style={{ aspectRatio: '4/5', borderRadius: 'var(--r-lg)' }}
+              />
+            </div>
+          </div>
         </div>
       </section>
 
-      {categories.length > 0 ? (
-        <section className="container py-12">
-          <h2 className="mb-6 font-serif text-2xl font-semibold tracking-tight">Shop by category</h2>
-          <div className="flex flex-wrap gap-2">
-            {categories.map(cat => (
-              <Button key={cat.id} asChild variant="outline" size="sm">
-                <Link href={`/c/${cat.slug}`}>{cat.name}</Link>
-              </Button>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
+      {/* NEW ARRIVALS */}
       {displays.length > 0 ? (
-        <section className="container py-12">
-          <h2 className="mb-6 font-serif text-2xl font-semibold tracking-tight">New arrivals</h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {displays.map(display => (
-              <ProductCard key={display.product.id} display={display} config={config} />
-            ))}
+        <section className="section" style={{ paddingTop: 'clamp(40px,5vw,72px)' }}>
+          <div className="wrap-wide">
+            <div
+              className="between"
+              style={{ marginBottom: 26, alignItems: 'flex-end' }}
+            >
+              <div>
+                <span className="eyebrow">Most wanted</span>
+                <h2 className="h-lg" style={{ marginTop: 8 }}>
+                  New arrivals
+                </h2>
+              </div>
+              <Link className="btn btn-ghost hide-sm" href="/search">
+                Shop the collection <span className="arr">→</span>
+              </Link>
+            </div>
+            <div className="pgrid">
+              {displays.map(display => {
+                const { product, fromCents, compareAtCents } = display;
+                const onSale =
+                  fromCents !== null &&
+                  compareAtCents !== null &&
+                  compareAtCents > fromCents;
+                return (
+                  <article key={product.id} className="pcard">
+                    <Link
+                      href={`/p/${product.slug}`}
+                      className="plate"
+                      aria-label={product.name}
+                    >
+                      {onSale ? (
+                        <span className="badge badge-sale corner">Sale</span>
+                      ) : null}
+                      <span className="plate-cap">{product.name}</span>
+                    </Link>
+                    <div className="pmeta">
+                      {product.brand ? (
+                        <span className="brand">{product.brand}</span>
+                      ) : null}
+                      <Link href={`/p/${product.slug}`} className="pname">
+                        {product.name}
+                      </Link>
+                      {fromCents !== null ? (
+                        <div className="prow">
+                          {onSale ? (
+                            <>
+                              <span className="sale-price price">
+                                {formatMoney(fromCents, config)}
+                              </span>
+                              <span className="strike price">
+                                {formatMoney(compareAtCents, config)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="price">
+                              From {formatMoney(fromCents, config)}
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         </section>
       ) : (
-        <section className="container py-16 text-center text-muted-foreground">
-          Our catalog is being stocked. Check back soon.
+        <section className="section">
+          <div className="wrap-wide center" style={{ color: 'var(--ink-3)' }}>
+            Our catalog is being stocked. Check back soon.
+          </div>
         </section>
       )}
+
+      {/* POPULAR CATEGORIES */}
+      {categories.length > 0 ? (
+        <section className="section paper2">
+          <div className="wrap-wide">
+            <div
+              className="between"
+              style={{ marginBottom: 26, alignItems: 'flex-end' }}
+            >
+              <h2 className="h-lg">Shop by category</h2>
+              <Link className="btn btn-quiet hide-sm" href="/search">
+                All categories <span className="arr">→</span>
+              </Link>
+            </div>
+            <div className="cat-grid">
+              {categories.map(cat => (
+                <Link key={cat.id} href={`/c/${cat.slug}`} className="cat-tile">
+                  <div className="ph clean" data-label={cat.name} />
+                  <div className="cat-cap">
+                    <span>{cat.name}</span>
+                    <span className="ucap" style={{ color: 'var(--clay-deep)' }}>
+                      Shop →
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }

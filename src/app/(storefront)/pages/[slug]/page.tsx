@@ -47,7 +47,13 @@ export default async function CmsMarketingPage({
   // version (drafts/archived) — both are 404 to anonymous visitors.
   if (!page) notFound();
 
+  // Plume scope: blocks render full-bleed sections that manage their own
+  // `.wrap`/`.container` width, so we only provide the page-level rhythm and
+  // let the Plume tokens (serif headings, `.lede`) inherit. The block markup
+  // and the registry dispatch are untouched.
   return (
-    <CmsBlockRenderer storeId={storeId} config={config} blocks={page.blocks} />
+    <main className="cms-page section">
+      <CmsBlockRenderer storeId={storeId} config={config} blocks={page.blocks} />
+    </main>
   );
 }

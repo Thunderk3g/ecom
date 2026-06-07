@@ -3,8 +3,6 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 import type { Facets } from '@/modules/catalog/facets';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 
 /**
  * Faceted filter sidebar (client). Reads the computed facets passed from the
@@ -37,21 +35,19 @@ export function FilterSidebar({ facets }: { facets: Facets }) {
     [...params.keys()].some(k => k.startsWith('attr_'));
 
   return (
-    <aside className="w-full space-y-6 md:w-56 md:shrink-0">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+    <aside className="filters-rail">
+      <div className="between" style={{ marginBottom: 8 }}>
+        <span className="cap" style={{ letterSpacing: '.14em' }}>
           Filters
-        </h2>
+        </span>
         {hasAnyFilter ? (
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
-            className="h-auto p-0 text-xs"
+            className="meta link-u"
             onClick={() => router.push(pathname)}
           >
-            Clear
-          </Button>
+            Clear all
+          </button>
         ) : null}
       </div>
 
@@ -91,27 +87,25 @@ function FacetGroup({
   onToggle: (value: string) => void;
 }) {
   return (
-    <div className="space-y-2">
-      <Label className="capitalize">{label}</Label>
-      <ul className="space-y-1">
+    <details className="facet" open>
+      <summary style={{ textTransform: 'capitalize' }}>
+        {label} <span className="pm">+</span>
+      </summary>
+      <div className="facet-body">
         {options.map(opt => {
           const isActive = active === opt.value;
           return (
-            <li key={opt.value}>
-              <button
-                type="button"
-                onClick={() => onToggle(opt.value)}
-                className={`flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-sm transition-colors ${
-                  isActive ? 'bg-brand/10 font-medium text-brand' : 'hover:bg-accent'
-                }`}
-              >
-                <span className="truncate">{opt.value}</span>
-                <span className="ml-2 text-xs text-muted-foreground">{opt.count}</span>
-              </button>
-            </li>
+            <label key={opt.value} className="check">
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={() => onToggle(opt.value)}
+              />{' '}
+              {opt.value} <span className="ct">{opt.count}</span>
+            </label>
           );
         })}
-      </ul>
-    </div>
+      </div>
+    </details>
   );
 }
