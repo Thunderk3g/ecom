@@ -4,6 +4,12 @@ const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']),
   ROLE: z.enum(['web', 'worker', 'scheduler']).default('web'),
   DATABASE_URL: z.string().url(),
+  // Optional explicit runtime (NOBYPASSRLS) connection string. When set, the app
+  // uses it verbatim for request-time queries instead of deriving the runtime
+  // role from DATABASE_URL. Required on Supabase / managed Postgres, where the
+  // migrator connects as `postgres` (not `app_migrator`) so the derive-by-rename
+  // trick doesn't apply. Local Docker dev leaves this unset.
+  APP_DATABASE_URL: z.string().url().optional(),
   REDIS_URL: z.string().url(),
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 chars'),
   COOKIE_DOMAIN: z.string().min(1),
