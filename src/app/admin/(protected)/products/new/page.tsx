@@ -1,5 +1,4 @@
 import { getAdminContext } from '../../_lib/context';
-import { PageHeader } from '../../_lib/ui';
 import { flattenCategories } from '../../_lib/categories';
 import { getAdminCategoryTree } from '@/modules/catalog/categories';
 import { ProductEditor } from '../ProductEditor';
@@ -12,8 +11,17 @@ export default async function NewProductPage() {
   const categories = flattenCategories(tree).map(c => ({ id: c.id, label: c.label }));
 
   return (
-    <div className="space-y-4">
-      <PageHeader title="New product" description="Create a catalog product." />
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            New product
+          </h2>
+          <p className="t-sub" style={{ marginTop: 4 }}>
+            Create a catalog product.
+          </p>
+        </div>
+      </div>
       <ProductEditor
         mode="create"
         initial={{
@@ -30,6 +38,6 @@ export default async function NewProductPage() {
         categories={categories}
         variants={[]}
       />
-    </div>
+    </>
   );
 }

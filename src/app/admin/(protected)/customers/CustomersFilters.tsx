@@ -2,8 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 
 export function CustomersFilters({ email }: { email: string }) {
   const router = useRouter();
@@ -22,33 +20,46 @@ export function CustomersFilters({ email }: { email: string }) {
 
   return (
     <form
-      className="flex flex-wrap items-end gap-2"
+      className="tbar"
       onSubmit={e => {
         e.preventDefault();
         apply(emailInput.trim());
       }}
     >
-      <div className="w-72">
-        <Input
-          placeholder="Search by email"
+      <label className="search" style={{ maxWidth: 288, padding: '8px 14px' }}>
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.2-3.2" />
+        </svg>
+        <input
+          aria-label="Search by email"
+          placeholder="Search by email…"
           value={emailInput}
           onChange={e => setEmailInput(e.target.value)}
         />
-      </div>
-      <Button type="submit" variant="outline">
+      </label>
+      <button type="submit" className="btn btn-ghost btn-sm">
         Search
-      </Button>
+      </button>
       {email ? (
-        <Button
+        <button
           type="button"
-          variant="ghost"
+          className="btn btn-ghost btn-sm"
           onClick={() => {
             setEmailInput('');
             apply('');
           }}
         >
           Clear
-        </Button>
+        </button>
       ) : null}
     </form>
   );

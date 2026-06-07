@@ -1,9 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMemo } from 'react';
-import type { ColumnDef } from '@tanstack/react-table';
-import { DataTable } from '@/components/admin/DataTable';
 import { formatDateTime, formatMoney } from '@/lib/format';
 
 export type CustomerListRow = {
@@ -16,53 +13,65 @@ export type CustomerListRow = {
   createdAt: string;
 };
 
+/** Two-letter initials from the customer's display name (or email). */
+function initials(name: string, email: string): string {
+  const source = (name || email).trim();
+  const parts = source.split(/[\s.@_-]+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
+  }
+  return source.slice(0, 2).toUpperCase();
+}
+
 export function CustomersTable({ rows }: { rows: CustomerListRow[] }) {
   const router = useRouter();
 
-  const columns = useMemo<ColumnDef<CustomerListRow>[]>(
-    () => [
-      {
-        accessorKey: 'email',
-        header: 'Email',
-        cell: ({ row }) => (
-          <div>
-            <div className="font-medium">{row.original.email}</div>
-            <div className="text-xs text-muted-foreground">{row.original.name}</div>
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'locale',
-        header: 'Locale',
-        cell: ({ row }) => row.original.locale,
-      },
-      {
-        accessorKey: 'orderCount',
-        header: 'Orders',
-        cell: ({ row }) => row.original.orderCount,
-      },
-      {
-        accessorKey: 'lifetimeValueCents',
-        header: 'Lifetime value',
-        cell: ({ row }) => formatMoney(row.original.lifetimeValueCents),
-      },
-      {
-        accessorKey: 'createdAt',
-        header: 'Created',
-        cell: ({ row }) => formatDateTime(row.original.createdAt),
-      },
-    ],
-    [],
-  );
+  if (rows.length === 0) {
+    return (
+      <div className="panel-pad t-sub" style={{ textAlign: 'center' }}>
+        No customers match this search.
+      </div>
+    );
+  }
 
   return (
-    <DataTable
-      columns={columns}
-      data={rows}
-      emptyMessage="No customers match this search."
-      onRowClick={r =>
-        router.push(`/admin/customers/${r.id}` as Parameters<typeof router.push>[0])
-      }
-    />
+    <table className="dtable">
+      <thead>
+        <tr>
+          <th>Customer</th>
+          <th>Locale</th>
+          <th className="num">Orders</th>
+          <th className="num">Lifetime value</th>
+          <th>Signed up</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(r => (
+          <tr
+            key={r.id}
+            style={{ cursor: 'pointer' }}
+            onClick={() =>
+              router.push(
+                `/admin/customers/${r.id}` as Parameters<typeof router.push>[0],
+              )
+            }
+          >
+            <td>
+              <div className="cellrow">
+                <span className="av">{initials(r.name, r.email)}</span>
+                <div>
+                  <div className="t-strong">{r.email}</div>
+                  <div className="t-sub">{r.name}</div>
+                </div>
+              </div>
+            </td>
+            <td className="t-sub">{r.locale}</td>
+            <td className="num">{r.orderCount}</td>
+            <td className="num t-strong">{formatMoney(r.lifetimeValueCents)}</td>
+            <td className="t-sub">{formatDateTime(r.createdAt)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

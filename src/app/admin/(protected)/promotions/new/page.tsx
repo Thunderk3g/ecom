@@ -1,4 +1,3 @@
-import { PageHeader } from '../../_lib/ui';
 import { PromotionForm } from '../_components/PromotionForm';
 import type { PromotionFormInput } from '../actions';
 
@@ -23,12 +22,16 @@ const EMPTY_INITIAL: PromotionFormInput = {
 
 export default function NewPromotionPage() {
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="New promotion"
-        description="Create a coupon code or automatic discount."
-      />
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            New promotion
+          </h2>
+          <span className="t-sub">Create a coupon code or automatic discount.</span>
+        </div>
+      </div>
       <PromotionForm mode="create" initial={EMPTY_INITIAL} />
-    </div>
+    </>
   );
 }

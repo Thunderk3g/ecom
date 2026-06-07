@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import { desc, eq, sql } from 'drizzle-orm';
 import { getAdminContext } from '../../_lib/context';
-import { PageHeader } from '../../_lib/ui';
 import { withTenant } from '@/modules/tenant/with-tenant';
 import { orders, orderItems } from '@/db/schema/orders';
 import { payments, paymentIntents } from '@/db/schema/payments';
@@ -9,16 +8,6 @@ import { fulfillments, fulfillmentItems } from '@/db/schema/fulfillment';
 import { refunds, refundItems } from '@/db/schema/refunds';
 import { getOrderTimeline } from '@/modules/orders/events';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { formatDateTime, formatMoney } from '@/lib/format';
 import { StatusBadge } from '../_components/StatusBadge';
 import { FulfillDialog, type FulfillDialogItem } from '../_components/FulfillDialog';
@@ -178,286 +167,330 @@ export default async function OrderDetailPage({
   void refundItemsByRefund; // available for future per-refund line breakdown
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={`Order ${order.number}`}
-        description={`Placed ${formatDateTime(order.placedAt)}`}
-        action={
-          <div className="flex flex-wrap gap-2">
-            <FulfillDialog
-              orderId={order.id}
-              items={fulfillItems}
-              disabled={!canFulfill}
-            />
-            <RefundDialog
-              orderId={order.id}
-              items={refundDialogItems}
-              currency={currency}
-              refundableCents={refundableCents}
-              disabled={!canRefund}
-            />
-            <CancelDialog orderId={order.id} disabled={!canCancel} />
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <div className="row" style={{ gap: 10 }}>
+            <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+              Order {order.number}
+            </h2>
+            <StatusBadge status={order.status} />
           </div>
-        }
-      />
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex flex-wrap gap-x-6 gap-y-2">
-              <Field label="Status" value={<StatusBadge status={order.status} />} />
-              <Field
-                label="Payment"
-                value={<StatusBadge status={order.paymentStatus} />}
-              />
-              <Field
-                label="Fulfillment"
-                value={<StatusBadge status={order.fulfillmentStatus} />}
-              />
-            </div>
-            <Separator />
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="Subtotal" value={formatMoney(order.subtotalCents, currency)} />
-              <Field label="Discount" value={`- ${formatMoney(order.discountCents, currency)}`} />
-              <Field label="Shipping" value={formatMoney(order.shippingCents, currency)} />
-              <Field label="Tax" value={formatMoney(order.taxCents, currency)} />
-              <Field
-                label="Total"
-                value={<span className="font-semibold">{formatMoney(order.totalCents, currency)}</span>}
-              />
-              {order.couponCode ? (
-                <Field label="Coupon" value={order.couponCode} />
-              ) : null}
-            </div>
-            {order.note ? (
-              <>
-                <Separator />
-                <div>
-                  <div className="text-xs uppercase text-muted-foreground">Note</div>
-                  <p className="text-sm">{order.note}</p>
-                </div>
-              </>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Customer</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <Field label="Email" value={order.email} />
-            <Separator />
-            <AddressBlock title="Shipping" address={order.shippingAddress} />
-            <Separator />
-            <AddressBlock title="Billing" address={order.billingAddress} />
-          </CardContent>
-        </Card>
+          <span className="t-sub">Placed {formatDateTime(order.placedAt)}</span>
+        </div>
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+          <FulfillDialog
+            orderId={order.id}
+            items={fulfillItems}
+            disabled={!canFulfill}
+          />
+          <RefundDialog
+            orderId={order.id}
+            items={refundDialogItems}
+            currency={currency}
+            refundableCents={refundableCents}
+            disabled={!canRefund}
+          />
+          <CancelDialog orderId={order.id} disabled={!canCancel} />
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Items</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item</TableHead>
-                <TableHead className="text-right">Qty</TableHead>
-                <TableHead className="text-right">Unit</TableHead>
-                <TableHead className="text-right">Line total</TableHead>
-                <TableHead className="text-right">Tax</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map(it => (
-                <TableRow key={it.id}>
-                  <TableCell>
-                    <div className="font-medium">{it.name}</div>
-                    <div className="text-xs text-muted-foreground">{it.sku}</div>
-                  </TableCell>
-                  <TableCell className="text-right">{it.qty}</TableCell>
-                  <TableCell className="text-right">
-                    {formatMoney(it.unitPriceCents, currency)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatMoney(it.lineTotalCents, currency)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatMoney(it.taxCents, currency)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Payment</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            {intent ? (
-              <div className="space-y-1">
-                <div className="text-xs uppercase text-muted-foreground">Intent</div>
-                <div className="font-mono text-xs">{intent.id}</div>
-                <div className="text-xs text-muted-foreground">
-                  {intent.provider} · {intent.status}
-                  {intent.providerRef ? ` · ${intent.providerRef}` : ''}
+      <div className="adm-cols">
+        {/* Left / main column */}
+        <div className="stack" style={{ gap: 16 }}>
+          {/* Summary */}
+          <div className="panel">
+            <div className="panel-head">
+              <h3>Summary</h3>
+              <div className="row" style={{ gap: 8 }}>
+                <StatusBadge status={order.paymentStatus} />
+                <StatusBadge status={order.fulfillmentStatus} />
+              </div>
+            </div>
+            <div className="panel-pad">
+              <div className="sum-line">
+                <span>Subtotal</span>
+                <span>{formatMoney(order.subtotalCents, currency)}</span>
+              </div>
+              <div className="sum-line">
+                <span>
+                  Discount{order.couponCode ? ` · ${order.couponCode}` : ''}
+                </span>
+                <span style={{ color: 'var(--good)' }}>
+                  −{formatMoney(order.discountCents, currency)}
+                </span>
+              </div>
+              <div className="sum-line">
+                <span>Shipping</span>
+                <span>{formatMoney(order.shippingCents, currency)}</span>
+              </div>
+              <div className="sum-line">
+                <span>Tax</span>
+                <span>{formatMoney(order.taxCents, currency)}</span>
+              </div>
+              <div className="sum-line total">
+                <span>Total</span>
+                <span>{formatMoney(order.totalCents, currency)}</span>
+              </div>
+              {order.note ? (
+                <div style={{ marginTop: 12 }}>
+                  <div className="t-sub ucap">Note</div>
+                  <p className="t-sub" style={{ lineHeight: 1.6 }}>
+                    {order.note}
+                  </p>
                 </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Items */}
+          <div className="panel">
+            <div className="panel-head">
+              <h3>Items</h3>
+            </div>
+            <table className="dtable">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th className="num">Qty</th>
+                  <th className="num">Unit</th>
+                  <th className="num">Line total</th>
+                  <th className="num">Tax</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map(it => (
+                  <tr key={it.id}>
+                    <td>
+                      <div className="t-strong">{it.name}</div>
+                      <div className="t-sub">{it.sku}</div>
+                    </td>
+                    <td className="num t-sub">×{it.qty}</td>
+                    <td className="num">
+                      {formatMoney(it.unitPriceCents, currency)}
+                    </td>
+                    <td className="num t-strong">
+                      {formatMoney(it.lineTotalCents, currency)}
+                    </td>
+                    <td className="num t-sub">
+                      {formatMoney(it.taxCents, currency)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Payment & transactions */}
+          <div className="panel">
+            <div className="panel-head">
+              <h3>Payment &amp; transactions</h3>
+            </div>
+            <div className="panel-pad" style={{ paddingBottom: 0 }}>
+              {intent ? (
+                <div style={{ marginBottom: 8 }}>
+                  <div className="t-sub ucap">Intent</div>
+                  <div className="t-strong" style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                    {intent.id}
+                  </div>
+                  <div className="t-sub">
+                    {intent.provider} · {intent.status}
+                    {intent.providerRef ? ` · ${intent.providerRef}` : ''}
+                  </div>
+                </div>
+              ) : (
+                <p className="t-sub">No payment intent recorded.</p>
+              )}
+            </div>
+            {paymentRows.length === 0 ? (
+              <div className="panel-pad">
+                <p className="t-sub">No payments recorded.</p>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No payment intent recorded.</p>
-            )}
-            <Separator />
-            {paymentRows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No payments recorded.</p>
-            ) : (
-              <div className="space-y-2">
-                {paymentRows.map(p => (
-                  <div key={p.id} className="rounded-md border p-2">
-                    <div className="flex items-center justify-between">
-                      <div className="font-medium">
+              <table className="dtable">
+                <thead>
+                  <tr>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th className="num">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paymentRows.map(p => (
+                    <tr key={p.id}>
+                      <td className="t-strong">
+                        {p.provider}
+                        {p.method ? ` · ${p.method}` : ''}
+                        {p.providerRef ? (
+                          <div className="t-sub">{p.providerRef}</div>
+                        ) : null}
+                      </td>
+                      <td>
+                        <StatusBadge status={p.status} />
+                      </td>
+                      <td className="t-sub">{formatDateTime(p.createdAt)}</td>
+                      <td className="num t-strong">
                         {formatMoney(p.amountCents, currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Fulfillments */}
+          <div className="panel">
+            <div className="panel-head">
+              <h3>Fulfilments</h3>
+            </div>
+            <div className="panel-pad stack" style={{ gap: 12 }}>
+              {fulfillmentRows.length === 0 ? (
+                <p className="t-sub">No fulfillments yet.</p>
+              ) : (
+                fulfillmentRows.map(f => (
+                  <div
+                    key={f.id}
+                    style={{
+                      border: '1px solid var(--line)',
+                      borderRadius: 'var(--r-sm)',
+                      padding: 14,
+                    }}
+                  >
+                    <div className="between">
+                      <div>
+                        <div
+                          className="t-strong"
+                          style={{ fontFamily: 'monospace', fontSize: 12 }}
+                        >
+                          {f.id}
+                        </div>
+                        <div className="t-sub">
+                          {f.carrier ?? '—'} · {f.trackingNumber ?? 'no tracking'}
+                        </div>
                       </div>
-                      <StatusBadge status={p.status} />
+                      <StatusBadge status={f.status} />
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {p.provider}
-                      {p.method ? ` · ${p.method}` : ''}
-                      {p.providerRef ? ` · ${p.providerRef}` : ''}
+                    <div className="t-sub" style={{ marginTop: 8 }}>
+                      {f.shippedAt
+                        ? `Shipped ${formatDateTime(f.shippedAt)}`
+                        : 'Not shipped'}
+                      {f.deliveredAt
+                        ? ` · Delivered ${formatDateTime(f.deliveredAt)}`
+                        : ''}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {formatDateTime(p.createdAt)}
+                    <ShipmentActions
+                      orderId={order.id}
+                      fulfillmentId={f.id}
+                      status={f.status}
+                      carrier={f.carrier}
+                      trackingNumber={f.trackingNumber}
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Refund history */}
+          <div className="panel">
+            <div className="panel-head">
+              <h3>Refund history</h3>
+            </div>
+            <div className="panel-pad stack" style={{ gap: 12 }}>
+              {refundRows.length === 0 ? (
+                <p className="t-sub">No refunds recorded.</p>
+              ) : (
+                refundRows.map(r => (
+                  <div
+                    key={r.id}
+                    style={{
+                      border: '1px solid var(--line)',
+                      borderRadius: 'var(--r-sm)',
+                      padding: 14,
+                    }}
+                  >
+                    <div className="between">
+                      <div>
+                        <div className="t-strong">
+                          {formatMoney(r.amountCents, currency)}
+                        </div>
+                        <div className="t-sub">
+                          {r.providerRef ?? 'no provider ref'} ·{' '}
+                          {formatDateTime(r.createdAt)}
+                        </div>
+                        {r.reason ? (
+                          <div className="t-sub">Reason: {r.reason}</div>
+                        ) : null}
+                      </div>
+                      <StatusBadge status={r.status} />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right / aside column */}
+        <aside className="stack" style={{ gap: 16 }}>
+          <div className="panel panel-pad">
+            <h3
+              style={{
+                fontFamily: 'var(--serif)',
+                fontSize: 16,
+                marginBottom: 10,
+              }}
+            >
+              Customer
+            </h3>
+            <div className="t-sub" style={{ lineHeight: 1.7, marginBottom: 12 }}>
+              {order.email}
+            </div>
+            <AddressBlock title="Shipping address" address={order.shippingAddress} />
+            <div style={{ height: 12 }} />
+            <AddressBlock title="Billing address" address={order.billingAddress} />
+          </div>
+
+          <div className="panel panel-pad">
+            <h3
+              style={{
+                fontFamily: 'var(--serif)',
+                fontSize: 16,
+                marginBottom: 18,
+              }}
+            >
+              Event timeline
+            </h3>
+            {timeline.length === 0 ? (
+              <p className="t-sub">No events yet.</p>
+            ) : (
+              <div className="timeline">
+                {timeline.map((ev, i) => (
+                  <div
+                    key={ev.id}
+                    className={`tl-item ${i === 0 ? 'cur' : 'done'}`}
+                  >
+                    <div className="tl-mark">
+                      <span className="tl-dot" />
+                      <span className="tl-line" />
+                    </div>
+                    <div className="tl-body">
+                      <div className="t">{ev.kind}</div>
+                      <div className="s">
+                        {formatDateTime(ev.createdAt)} · {ev.actorType}
+                        {ev.actorId ? ` · ${ev.actorId}` : ''}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Fulfillments</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {fulfillmentRows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No fulfillments yet.</p>
-            ) : (
-              fulfillmentRows.map(f => (
-                <div key={f.id} className="rounded-md border p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <div className="font-mono text-xs">{f.id}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {f.carrier ?? '—'} · {f.trackingNumber ?? 'no tracking'}
-                      </div>
-                    </div>
-                    <StatusBadge status={f.status} />
-                  </div>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    {f.shippedAt ? `Shipped ${formatDateTime(f.shippedAt)}` : 'Not shipped'}
-                    {f.deliveredAt ? ` · Delivered ${formatDateTime(f.deliveredAt)}` : ''}
-                  </div>
-                  <ShipmentActions
-                    orderId={order.id}
-                    fulfillmentId={f.id}
-                    status={f.status}
-                    carrier={f.carrier}
-                    trackingNumber={f.trackingNumber}
-                  />
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+          </div>
+        </aside>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Refund history</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          {refundRows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No refunds recorded.</p>
-          ) : (
-            refundRows.map(r => (
-              <div key={r.id} className="rounded-md border p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <div className="font-medium">
-                      {formatMoney(r.amountCents, currency)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {r.providerRef ?? 'no provider ref'} · {formatDateTime(r.createdAt)}
-                    </div>
-                    {r.reason ? (
-                      <div className="text-xs text-muted-foreground">
-                        Reason: {r.reason}
-                      </div>
-                    ) : null}
-                  </div>
-                  <StatusBadge status={r.status} />
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Timeline</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {timeline.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No events yet.</p>
-          ) : (
-            <ol className="space-y-2">
-              {timeline.map(ev => (
-                <li
-                  key={ev.id}
-                  className="flex items-start justify-between gap-3 rounded-md border p-2 text-sm"
-                >
-                  <div>
-                    <div className="font-medium">{ev.kind}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {ev.actorType}
-                      {ev.actorId ? ` · ${ev.actorId}` : ''}
-                    </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatDateTime(ev.createdAt)}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-0.5">
-      <div className="text-xs uppercase text-muted-foreground">{label}</div>
-      <div>{value}</div>
-    </div>
+    </>
   );
 }
 
@@ -481,22 +514,33 @@ function AddressBlock({
 }) {
   return (
     <div>
-      <div className="text-xs uppercase text-muted-foreground">{title}</div>
+      <div className="t-sub ucap" style={{ marginBottom: 4 }}>
+        {title}
+      </div>
       {address ? (
-        <div className="text-sm">
-          <div>{address.name}</div>
-          <div>{address.line1}</div>
-          {address.line2 ? <div>{address.line2}</div> : null}
-          <div>
-            {address.city}, {address.region} {address.postal}
-          </div>
-          <div>{address.country}</div>
+        <div className="t-sub" style={{ lineHeight: 1.7 }}>
+          {address.name}
+          <br />
+          {address.line1}
+          {address.line2 ? (
+            <>
+              <br />
+              {address.line2}
+            </>
+          ) : null}
+          <br />
+          {address.city}, {address.region} {address.postal}
+          <br />
+          {address.country}
           {address.phone ? (
-            <div className="text-xs text-muted-foreground">{address.phone}</div>
+            <>
+              <br />
+              {address.phone}
+            </>
           ) : null}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">Not provided.</p>
+        <p className="t-sub">Not provided.</p>
       )}
     </div>
   );

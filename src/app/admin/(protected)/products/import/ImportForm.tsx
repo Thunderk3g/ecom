@@ -2,10 +2,6 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 function uuid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -51,37 +47,40 @@ export function ImportForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">CSV upload</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
+    <div className="panel">
+      <div className="panel-head">
+        <h3>CSV upload</h3>
+      </div>
+      <div className="panel-pad stack" style={{ gap: 16 }}>
+        <p className="t-sub">
           Columns: <code>slug, name, brand, category_slug, sku, price, status</code>.
           Each row maps to a product + its primary variant. The worker validates
           and reports per-row errors after processing.
         </p>
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="file">CSV file</Label>
-            <Input
+        <form onSubmit={submit} className="stack" style={{ gap: 16 }}>
+          <div className="field">
+            <label htmlFor="file">CSV file</label>
+            <input
               id="file"
+              className="input"
               type="file"
               accept=".csv,text/csv"
               onChange={e => setFile(e.target.files?.[0] ?? null)}
             />
           </div>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? 'Uploading…' : 'Upload & queue'}
-          </Button>
+          <div className="row">
+            <button type="submit" className="btn btn-clay btn-sm" disabled={submitting}>
+              {submitting ? 'Uploading…' : 'Upload & queue'}
+            </button>
+          </div>
         </form>
         {jobId ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="t-sub">
             Queued as job <code>{jobId}</code>. Results appear once the worker
             finishes processing.
           </p>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

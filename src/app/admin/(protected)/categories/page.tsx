@@ -1,5 +1,4 @@
 import { getAdminContext } from '../_lib/context';
-import { PageHeader } from '../_lib/ui';
 import { flattenCategories } from '../_lib/categories';
 import { getAdminCategoryTree } from '@/modules/catalog/categories';
 import { CategoriesManager, type CategoryListRow } from './CategoriesManager';
@@ -41,12 +40,6 @@ export default async function CategoriesPage() {
   const options = flat.map(c => ({ id: c.id, label: c.label }));
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Categories"
-        description="Organize products into a category tree."
-      />
-      <CategoriesManager rows={detailed} parentOptions={options} />
-    </div>
+    <CategoriesManager rows={detailed} parentOptions={options} />
   );
 }

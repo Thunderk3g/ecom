@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lte, sql, type SQL } from 'drizzle-orm';
 import { getAdminContext } from '../_lib/context';
-import { PageHeader, CursorPager } from '../_lib/ui';
+import { CursorPager } from '../_lib/ui';
 import { withTenant } from '@/modules/tenant/with-tenant';
 import { auditLog } from '@/db/schema/audit';
 import { users, storeUsers } from '@/db/schema/identity';
@@ -10,13 +10,6 @@ import {
   parseLimit,
   type CursorPayload,
 } from '@/lib/cursor';
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { AuditFilters } from './_components/AuditFilters';
 import { EntryRow, type AuditEntry } from './_components/EntryRow';
 
@@ -134,48 +127,55 @@ export default async function AuditLogPage({
   }));
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Audit log"
-        description="Append-only record of admin actions and system events."
-      />
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            Audit log
+          </h2>
+          <span className="t-sub">
+            Append-only record of admin actions and system events.
+          </span>
+        </div>
+      </div>
 
-      <AuditFilters
-        entityType={entityType ?? ''}
-        actorId={actorId ?? ''}
-        action={action ?? ''}
-        from={from ?? ''}
-        to={to ?? ''}
-        actors={actors}
-      />
-
-      <div className="rounded-md border bg-background">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[180px]">Timestamp</TableHead>
-              <TableHead>Actor</TableHead>
-              <TableHead>Action</TableHead>
-              <TableHead>Entity</TableHead>
-              <TableHead>Summary</TableHead>
-              <TableHead className="w-[60px]" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <div className="panel">
+        <div className="tbar">
+          <AuditFilters
+            entityType={entityType ?? ''}
+            actorId={actorId ?? ''}
+            action={action ?? ''}
+            from={from ?? ''}
+            to={to ?? ''}
+            actors={actors}
+          />
+        </div>
+        <table className="dtable">
+          <thead>
+            <tr>
+              <th style={{ width: 180 }}>Timestamp</th>
+              <th>Actor</th>
+              <th>Action</th>
+              <th>Entity</th>
+              <th>Summary</th>
+              <th style={{ width: 60 }} />
+            </tr>
+          </thead>
+          <tbody>
             {entries.length === 0 ? (
-              <TableRow>
+              <tr>
                 <td
                   colSpan={6}
-                  className="h-24 p-2 text-center align-middle text-sm text-muted-foreground"
+                  style={{ textAlign: 'center', color: 'var(--ink-3)', padding: '40px 16px' }}
                 >
                   No audit entries match these filters.
                 </td>
-              </TableRow>
+              </tr>
             ) : (
               entries.map(e => <EntryRow key={e.id} entry={e} />)
             )}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
 
       <CursorPager
@@ -183,6 +183,6 @@ export default async function AuditLogPage({
         nextCursor={nextCursor}
         params={{ entityType, actorId, action, from, to }}
       />
-    </div>
+    </>
   );
 }

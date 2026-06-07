@@ -26,16 +26,26 @@ export default async function RebuildSpritePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">SVG sprite</h1>
-        <p className="text-muted-foreground">
-          Rebuild the aggregate <code>icons-&lt;store&gt;.svg</code> sprite from every SVG asset in
-          this store. The storefront <code>&lt;Icon&gt;</code> component renders <code>&lt;use&gt;</code> references against this file.
-        </p>
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>SVG sprite</h2>
+          <span className="t-sub">Aggregate every SVG asset into one storefront sprite file.</span>
+        </div>
       </div>
 
-      <RebuildSpriteForm />
-    </div>
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Rebuild sprite</h3>
+        </div>
+        <div className="panel-pad" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <p className="t-sub" style={{ lineHeight: 1.6 }}>
+            Rebuild the aggregate <code>icons-&lt;store&gt;.svg</code> sprite from every SVG asset in
+            this store. The storefront <code>&lt;Icon&gt;</code> component renders <code>&lt;use&gt;</code> references against this file.
+          </p>
+          <RebuildSpriteForm />
+        </div>
+      </div>
+    </>
   );
 }

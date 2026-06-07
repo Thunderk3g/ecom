@@ -1,10 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMemo } from 'react';
-import type { ColumnDef } from '@tanstack/react-table';
-import { Badge } from '@/components/ui/badge';
-import { DataTable } from '@/components/admin/DataTable';
 import { formatDateTime } from '@/lib/format';
 
 export type ProductListRow = {
@@ -18,64 +14,65 @@ export type ProductListRow = {
   updatedAt: string;
 };
 
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
-  active: 'default',
-  draft: 'secondary',
-  archived: 'outline',
+const STATUS_PILL: Record<string, string> = {
+  active: 'sp-active',
+  draft: 'sp-draft',
+  archived: 'sp-out',
 };
 
 export function ProductsTable({ rows }: { rows: ProductListRow[] }) {
   const router = useRouter();
 
-  const columns = useMemo<ColumnDef<ProductListRow>[]>(
-    () => [
-      {
-        accessorKey: 'name',
-        header: 'Name',
-        cell: ({ row }) => (
-          <div>
-            <div className="font-medium">{row.original.name}</div>
-            <div className="text-xs text-muted-foreground">{row.original.slug}</div>
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'status',
-        header: 'Status',
-        cell: ({ row }) => (
-          <Badge variant={STATUS_VARIANT[row.original.status] ?? 'secondary'}>
-            {row.original.status}
-          </Badge>
-        ),
-      },
-      {
-        accessorKey: 'categoryName',
-        header: 'Category',
-        cell: ({ row }) => row.original.categoryName ?? '—',
-      },
-      {
-        accessorKey: 'brand',
-        header: 'Brand',
-        cell: ({ row }) => row.original.brand ?? '—',
-      },
-      { accessorKey: 'type', header: 'Type' },
-      {
-        accessorKey: 'updatedAt',
-        header: 'Updated',
-        cell: ({ row }) => formatDateTime(row.original.updatedAt),
-      },
-    ],
-    [],
-  );
+  if (rows.length === 0) {
+    return (
+      <div className="panel-pad t-sub">No products match these filters.</div>
+    );
+  }
 
   return (
-    <DataTable
-      columns={columns}
-      data={rows}
-      emptyMessage="No products match these filters."
-      onRowClick={r =>
-        router.push(`/admin/products/${r.id}` as Parameters<typeof router.push>[0])
-      }
-    />
+    <table className="dtable">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Status</th>
+          <th>Brand</th>
+          <th>Category</th>
+          <th>Type</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(r => (
+          <tr
+            key={r.id}
+            style={{ cursor: 'pointer' }}
+            onClick={() =>
+              router.push(
+                `/admin/products/${r.id}` as Parameters<typeof router.push>[0],
+              )
+            }
+          >
+            <td>
+              <div className="cellrow">
+                <div className="ph" data-label={r.name.slice(0, 3).toUpperCase()} />
+                <div>
+                  <div className="t-strong">{r.name}</div>
+                  <div className="t-sub">{r.slug}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span className={`statpill ${STATUS_PILL[r.status] ?? 'sp-draft'}`}>
+                {r.status}
+              </span>
+            </td>
+            <td>{r.brand ?? '—'}</td>
+            <td>{r.categoryName ?? '—'}</td>
+            <td>{r.type}</td>
+            <td className="t-sub">{formatDateTime(r.updatedAt)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

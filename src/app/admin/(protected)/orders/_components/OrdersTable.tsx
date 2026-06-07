@@ -1,11 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMemo } from 'react';
-import type { ColumnDef } from '@tanstack/react-table';
-import { DataTable } from '@/components/admin/DataTable';
 import { formatDateTime, formatMoney } from '@/lib/format';
 import { StatusBadge } from './StatusBadge';
+import { statpillClass, statusLabel } from '../_status';
 
 export type OrderListRow = {
   id: string;
@@ -22,56 +20,62 @@ export type OrderListRow = {
 export function OrdersTable({ rows }: { rows: OrderListRow[] }) {
   const router = useRouter();
 
-  const columns = useMemo<ColumnDef<OrderListRow>[]>(
-    () => [
-      {
-        accessorKey: 'number',
-        header: 'Order',
-        cell: ({ row }) => (
-          <div>
-            <div className="font-medium">{row.original.number}</div>
-            <div className="text-xs text-muted-foreground">{row.original.email}</div>
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'status',
-        header: 'Status',
-        cell: ({ row }) => <StatusBadge status={row.original.status} />,
-      },
-      {
-        accessorKey: 'paymentStatus',
-        header: 'Payment',
-        cell: ({ row }) => row.original.paymentStatus,
-      },
-      {
-        accessorKey: 'fulfillmentStatus',
-        header: 'Fulfillment',
-        cell: ({ row }) => row.original.fulfillmentStatus,
-      },
-      {
-        accessorKey: 'totalCents',
-        header: 'Total',
-        cell: ({ row }) =>
-          formatMoney(row.original.totalCents, row.original.currency),
-      },
-      {
-        accessorKey: 'placedAt',
-        header: 'Placed',
-        cell: ({ row }) => formatDateTime(row.original.placedAt),
-      },
-    ],
-    [],
-  );
+  if (rows.length === 0) {
+    return (
+      <div className="panel-pad t-sub" style={{ textAlign: 'center' }}>
+        No orders match these filters.
+      </div>
+    );
+  }
 
   return (
-    <DataTable
-      columns={columns}
-      data={rows}
-      emptyMessage="No orders match these filters."
-      onRowClick={r =>
-        router.push(`/admin/orders/${r.id}` as Parameters<typeof router.push>[0])
-      }
-    />
+    <table className="dtable">
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Customer</th>
+          <th>Status</th>
+          <th>Payment</th>
+          <th>Fulfilment</th>
+          <th className="num">Total</th>
+          <th>Placed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(r => (
+          <tr
+            key={r.id}
+            style={{ cursor: 'pointer' }}
+            onClick={() =>
+              router.push(
+                `/admin/orders/${r.id}` as Parameters<typeof router.push>[0],
+              )
+            }
+          >
+            <td className="t-strong">{r.number}</td>
+            <td className="t-sub">{r.email}</td>
+            <td>
+              <StatusBadge status={r.status} />
+            </td>
+            <td>
+              <span className={`statpill ${statpillClass(r.paymentStatus)}`}>
+                {statusLabel(r.paymentStatus)}
+              </span>
+            </td>
+            <td>
+              <span
+                className={`statpill ${statpillClass(r.fulfillmentStatus)}`}
+              >
+                {statusLabel(r.fulfillmentStatus)}
+              </span>
+            </td>
+            <td className="num t-strong">
+              {formatMoney(r.totalCents, r.currency)}
+            </td>
+            <td className="t-sub">{formatDateTime(r.placedAt)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

@@ -1,15 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
-const ANY = '__any__';
+const OPTIONS: Array<{ value: string; label: string }> = [
+  { value: '', label: 'All' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'active', label: 'Active' },
+  { value: 'paused', label: 'Paused' },
+  { value: 'archived', label: 'Archived' },
+];
 
 export function PromotionsFilters({ status }: { status: string }) {
   const router = useRouter();
@@ -24,24 +23,17 @@ export function PromotionsFilters({ status }: { status: string }) {
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="w-44">
-        <Select
-          value={status || ANY}
-          onValueChange={v => apply({ status: v === ANY ? '' : v })}
+    <div className="seg">
+      {OPTIONS.map(o => (
+        <button
+          key={o.value || 'all'}
+          type="button"
+          className={status === o.value ? 'on' : undefined}
+          onClick={() => apply({ status: o.value })}
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ANY}>All statuses</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="paused">Paused</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }

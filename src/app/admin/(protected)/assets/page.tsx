@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { Button } from '@/components/ui/button';
 import { getAssetsAdminContext, assertPermission, AdminContextError } from './_lib/admin-context';
 import { loadGallery } from './_lib/data';
 import { AssetGrid, type GridAsset } from './_components/AssetGrid';
@@ -55,27 +54,33 @@ export default async function AssetsPage({ searchParams }: { searchParams: Searc
     : null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Assets</h1>
-          <p className="text-muted-foreground">Browse, upload, and manage media for this store.</p>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>Assets</h2>
+          <span className="t-sub">Browse, upload, and manage media for this store.</span>
         </div>
         <UploadDialog csrfToken={ctx.csrfToken} />
       </div>
 
-      <AssetFilters />
-
-      <AssetGrid assets={grid} />
-
-      {nextHref ? (
-        <div className="flex justify-center">
-          <Button asChild variant="outline">
-            <Link href={nextHref}>Load more</Link>
-          </Button>
+      <div className="panel">
+        <div className="tbar">
+          <AssetFilters />
         </div>
-      ) : null}
-    </div>
+        <div className="panel-pad">
+          <AssetGrid assets={grid} />
+        </div>
+
+        {nextHref ? (
+          <div className="pager">
+            <span>{grid.length} shown</span>
+            <Link href={nextHref} className="btn btn-ghost btn-sm">
+              Load more
+            </Link>
+          </div>
+        ) : null}
+      </div>
+    </>
   );
 }
 

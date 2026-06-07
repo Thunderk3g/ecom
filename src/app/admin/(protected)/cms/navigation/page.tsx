@@ -46,12 +46,14 @@ export default async function CmsNavigationPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Navigation</h1>
-        <p className="text-muted-foreground">Edit the header, footer, and mobile menus.</p>
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>Navigation</h2>
+          <span className="t-sub">Edit the header, footer, and mobile menus.</span>
+        </div>
       </div>
       <NavEditor menus={menus} />
-    </div>
+    </>
   );
 }

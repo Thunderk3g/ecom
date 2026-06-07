@@ -1,13 +1,5 @@
 import { getAdminContext } from '../_lib/context';
-import { PageHeader } from '../_lib/ui';
 import { loadSiteConfig } from '@/modules/config/loader';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import {
   Tabs,
   TabsContent,
@@ -16,7 +8,8 @@ import {
 } from '@/components/ui/tabs';
 
 import { BrandTab } from './_components/BrandTab';
-import { ThemeTab, scaleToSize } from './_components/ThemeTab';
+import { ThemeTab } from './_components/ThemeTab';
+import { scaleToSize } from './_components/spacing';
 import { CurrencyLocaleTab } from './_components/CurrencyLocaleTab';
 import { FeaturesTab } from './_components/FeaturesTab';
 
@@ -29,6 +22,11 @@ export const dynamic = 'force-dynamic';
 function str(v: unknown, fallback = ''): string {
   return typeof v === 'string' ? v : fallback;
 }
+
+// Plume `.adm-tabs a` look for the shadcn TabsTrigger: quiet tab that gets a
+// clay underline when active (data-state="active").
+const TAB_CLASS =
+  'rounded-none border-0 border-b-2 border-transparent bg-transparent px-4 py-3 text-[13.5px] font-semibold text-[var(--ink-3)] shadow-none data-[state=active]:border-[var(--clay)] data-[state=active]:bg-transparent data-[state=active]:text-[var(--ink)] data-[state=active]:shadow-none';
 
 export default async function SettingsPage() {
   const { storeId } = await getAdminContext();
@@ -45,21 +43,28 @@ export default async function SettingsPage() {
       : {};
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Settings"
-        description="Brand, theme, currency, locales, and feature flags for this store."
-      />
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            Settings
+          </h2>
+          <span className="t-sub">
+            Brand, theme, currency, locales, and feature flags for this store.
+          </span>
+        </div>
+      </div>
 
       <Tabs defaultValue="brand">
-        <TabsList>
-          <TabsTrigger value="brand">Brand</TabsTrigger>
-          <TabsTrigger value="theme">Theme</TabsTrigger>
-          <TabsTrigger value="currency">Currency & Locale</TabsTrigger>
-          <TabsTrigger value="features">Features</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="shipping">Shipping</TabsTrigger>
-          <TabsTrigger value="tax">Tax</TabsTrigger>
+        <TabsList className="adm-tabs h-auto justify-start gap-1 rounded-none border-0 bg-transparent p-0">
+          {/* TabsList keeps tab-switching behavior; .adm-tabs gives Plume styling */}
+          <TabsTrigger value="brand" className={TAB_CLASS}>Brand</TabsTrigger>
+          <TabsTrigger value="theme" className={TAB_CLASS}>Theme</TabsTrigger>
+          <TabsTrigger value="currency" className={TAB_CLASS}>Currency & Locale</TabsTrigger>
+          <TabsTrigger value="features" className={TAB_CLASS}>Features</TabsTrigger>
+          <TabsTrigger value="payments" className={TAB_CLASS}>Payments</TabsTrigger>
+          <TabsTrigger value="shipping" className={TAB_CLASS}>Shipping</TabsTrigger>
+          <TabsTrigger value="tax" className={TAB_CLASS}>Tax</TabsTrigger>
         </TabsList>
 
         <TabsContent value="brand">
@@ -126,7 +131,7 @@ export default async function SettingsPage() {
           />
         </TabsContent>
       </Tabs>
-    </div>
+    </>
   );
 }
 
@@ -140,12 +145,13 @@ function ManagedElsewhere({
   target: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="text-sm text-muted-foreground">{target}</CardContent>
-    </Card>
+    <div className="panel panel-pad">
+      <div className="row" style={{ gap: 10, marginBottom: 6 }}>
+        <h3 style={{ fontFamily: 'var(--serif)', fontSize: 17 }}>{title}</h3>
+        <span className="statpill sp-draft">Coming soon</span>
+      </div>
+      <p className="t-sub" style={{ marginBottom: 10 }}>{description}</p>
+      <p className="t-sub">{target}</p>
+    </div>
   );
 }

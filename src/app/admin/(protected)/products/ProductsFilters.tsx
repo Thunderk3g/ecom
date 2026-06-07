@@ -2,17 +2,13 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
-const ANY = '__any__';
+const STATUS_TABS: Array<{ value: string; label: string }> = [
+  { value: '', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'archived', label: 'Archived' },
+];
 
 export function ProductsFilters({
   status,
@@ -39,58 +35,52 @@ export function ProductsFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="w-40">
-        <Select
-          value={status || ANY}
-          onValueChange={v => apply({ status: v === ANY ? '' : v })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ANY}>All statuses</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
-          </SelectContent>
-        </Select>
+    <div className="tbar">
+      <div className="seg">
+        {STATUS_TABS.map(t => (
+          <button
+            key={t.value || 'all'}
+            type="button"
+            className={status === t.value ? 'on' : undefined}
+            onClick={() => apply({ status: t.value })}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
-      <div className="w-56">
-        <Select
-          value={categoryId || ANY}
-          onValueChange={v => apply({ categoryId: v === ANY ? '' : v })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ANY}>All categories</SelectItem>
-            {categories.map(c => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <div className="grow" />
       <form
-        className="flex items-end gap-2"
+        className="search"
+        style={{ maxWidth: 220, padding: '8px 14px' }}
         onSubmit={e => {
           e.preventDefault();
           apply({ brand: brandInput });
         }}
       >
-        <Input
-          placeholder="Brand"
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.2-3.2" />
+        </svg>
+        <input
+          placeholder="Brand…"
+          aria-label="Brand"
           value={brandInput}
           onChange={e => setBrandInput(e.target.value)}
-          className="w-40"
         />
-        <Button type="submit" variant="outline">
-          Filter
-        </Button>
       </form>
+      <select
+        className="mini-select"
+        aria-label="Category"
+        value={categoryId}
+        onChange={e => apply({ categoryId: e.target.value })}
+      >
+        <option value="">All categories</option>
+        {categories.map(c => (
+          <option key={c.id} value={c.id}>
+            {c.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

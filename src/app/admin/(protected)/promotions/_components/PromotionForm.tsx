@@ -4,11 +4,6 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -138,110 +133,54 @@ export function PromotionForm({ mode, promotionId, initial }: PromotionFormProps
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardContent className="space-y-4 pt-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="name">Name</Label>
-              <Input
+    <div className="adm-form-grid">
+      <div className="stack" style={{ gap: 16 }}>
+        <div className="panel panel-pad">
+          <h3 style={{ fontFamily: 'var(--serif)', fontSize: 16, marginBottom: 16 }}>
+            Details
+          </h3>
+          <div className="grid-2" style={{ gap: 16 }}>
+            <div className="field">
+              <label htmlFor="name">Name</label>
+              <input
                 id="name"
+                className="input"
                 value={form.name}
                 onChange={e => set('name', e.target.value)}
                 placeholder="Diwali sale"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="code">Code</Label>
-              <Input
+            <div className="field">
+              <label htmlFor="code">Code</label>
+              <input
                 id="code"
+                className="input"
                 value={form.code}
                 onChange={e => set('code', e.target.value)}
                 placeholder="Leave blank for auto-promo"
+                style={{ fontFamily: 'ui-monospace,monospace' }}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="t-sub" style={{ marginTop: 6 }}>
                 Leave empty to make this an automatic promotion (no coupon required).
               </p>
             </div>
           </div>
+        </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-1.5">
-              <Label>Type</Label>
-              <Select
-                value={form.type}
-                onValueChange={v => set('type', v as PromotionType)}
-                disabled={mode === 'edit'}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROMOTION_TYPES.map(t => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {mode === 'edit' ? (
-                <p className="text-xs text-muted-foreground">
-                  Type cannot be changed after creation.
-                </p>
-              ) : null}
-            </div>
-            <div className="space-y-1.5">
-              <Label>Status</Label>
-              <Select
-                value={form.status}
-                onValueChange={v => set('status', v as PromotionStatus)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROMOTION_STATUSES.map(s => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="stackable">Stackable</Label>
-              <Select
-                value={form.stackable ? 'yes' : 'no'}
-                onValueChange={v => set('stackable', v === 'yes')}
-              >
-                <SelectTrigger id="stackable">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no">No</SelectItem>
-                  <SelectItem value="yes">Yes</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="space-y-4 pt-6">
-          <div>
-            <h2 className="text-sm font-semibold">Value</h2>
-            <p className="text-xs text-muted-foreground">
-              Fields below depend on the promotion type.
-            </p>
-          </div>
-          <Separator />
+        <div className="panel panel-pad">
+          <h3 style={{ fontFamily: 'var(--serif)', fontSize: 16, marginBottom: 4 }}>
+            Value
+          </h3>
+          <p className="t-sub" style={{ marginBottom: 16 }}>
+            Fields below depend on the promotion type.
+          </p>
 
           {form.type === 'percent' ? (
-            <div className="space-y-1.5 sm:max-w-xs">
-              <Label htmlFor="percent">Percent off</Label>
-              <Input
+            <div className="field" style={{ maxWidth: 320 }}>
+              <label htmlFor="percent">Percent off</label>
+              <input
                 id="percent"
+                className="input"
                 type="number"
                 min={0}
                 max={100}
@@ -252,40 +191,42 @@ export function PromotionForm({ mode, promotionId, initial }: PromotionFormProps
                 }}
                 placeholder="10"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="t-sub" style={{ marginTop: 6 }}>
                 Between 0 and 100.
               </p>
             </div>
           ) : null}
 
           {form.type === 'amount' ? (
-            <div className="space-y-1.5 sm:max-w-xs">
-              <Label htmlFor="amount">Amount off</Label>
-              <Input
+            <div className="field" style={{ maxWidth: 320 }}>
+              <label htmlFor="amount">Amount off</label>
+              <input
                 id="amount"
+                className="input"
                 value={valueInput}
                 onChange={e => setValueInput(e.target.value)}
                 placeholder="100.00"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="t-sub" style={{ marginTop: 6 }}>
                 Major-unit amount; stored as integer minor units.
               </p>
             </div>
           ) : null}
 
           {form.type === 'free_shipping' ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="t-sub">
               Free shipping zeroes the shipping line at checkout. No additional fields
               are required.
             </p>
           ) : null}
 
           {form.type === 'bxgy' ? (
-            <div className="grid gap-4 sm:grid-cols-2 sm:max-w-md">
-              <div className="space-y-1.5">
-                <Label htmlFor="bxgy-buy">Buy quantity</Label>
-                <Input
+            <div className="grid-2" style={{ gap: 16, maxWidth: 440 }}>
+              <div className="field">
+                <label htmlFor="bxgy-buy">Buy quantity</label>
+                <input
                   id="bxgy-buy"
+                  className="input"
                   type="number"
                   min={1}
                   value={form.bxgyBuy ?? ''}
@@ -296,10 +237,11 @@ export function PromotionForm({ mode, promotionId, initial }: PromotionFormProps
                   placeholder="2"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="bxgy-get">Get quantity (free)</Label>
-                <Input
+              <div className="field">
+                <label htmlFor="bxgy-get">Get quantity (free)</label>
+                <input
                   id="bxgy-get"
+                  className="input"
                   type="number"
                   min={1}
                   value={form.bxgyGet ?? ''}
@@ -312,43 +254,44 @@ export function PromotionForm({ mode, promotionId, initial }: PromotionFormProps
               </div>
             </div>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card>
-        <CardContent className="space-y-4 pt-6">
-          <h2 className="text-sm font-semibold">Eligibility &amp; window</h2>
-          <Separator />
+        <div className="panel panel-pad">
+          <h3 style={{ fontFamily: 'var(--serif)', fontSize: 16, marginBottom: 16 }}>
+            Eligibility &amp; window
+          </h3>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="minSubtotal">Minimum cart subtotal</Label>
-              <Input
-                id="minSubtotal"
-                value={minSubtotalInput}
-                onChange={e => setMinSubtotalInput(e.target.value)}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-muted-foreground">
-                Leave blank for no minimum.
-              </p>
-            </div>
+          <div className="field" style={{ marginBottom: 16 }}>
+            <label htmlFor="minSubtotal">Minimum cart subtotal</label>
+            <input
+              id="minSubtotal"
+              className="input"
+              value={minSubtotalInput}
+              onChange={e => setMinSubtotalInput(e.target.value)}
+              placeholder="0.00"
+              style={{ maxWidth: 320 }}
+            />
+            <p className="t-sub" style={{ marginTop: 6 }}>
+              Leave blank for no minimum.
+            </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="startsAt">Starts at</Label>
-              <Input
+          <div className="grid-2" style={{ gap: 16, marginBottom: 16 }}>
+            <div className="field">
+              <label htmlFor="startsAt">Starts at</label>
+              <input
                 id="startsAt"
+                className="input"
                 type="datetime-local"
                 value={startsAtLocal}
                 onChange={e => setStartsAtLocal(e.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="endsAt">Ends at</Label>
-              <Input
+            <div className="field">
+              <label htmlFor="endsAt">Ends at</label>
+              <input
                 id="endsAt"
+                className="input"
                 type="datetime-local"
                 value={endsAtLocal}
                 onChange={e => setEndsAtLocal(e.target.value)}
@@ -356,11 +299,12 @@ export function PromotionForm({ mode, promotionId, initial }: PromotionFormProps
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="usageLimit">Usage limit (total)</Label>
-              <Input
+          <div className="grid-2" style={{ gap: 16 }}>
+            <div className="field">
+              <label htmlFor="usageLimit">Usage limit (total)</label>
+              <input
                 id="usageLimit"
+                className="input"
                 type="number"
                 min={1}
                 value={form.usageLimit ?? ''}
@@ -371,10 +315,11 @@ export function PromotionForm({ mode, promotionId, initial }: PromotionFormProps
                 placeholder="Unlimited"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="perCustomerLimit">Usage limit (per customer)</Label>
-              <Input
+            <div className="field">
+              <label htmlFor="perCustomerLimit">Usage limit (per customer)</label>
+              <input
                 id="perCustomerLimit"
+                className="input"
                 type="number"
                 min={1}
                 value={form.perCustomerLimit ?? ''}
@@ -386,25 +331,103 @@ export function PromotionForm({ mode, promotionId, initial }: PromotionFormProps
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end gap-2">
-        <Button
-          variant="outline"
-          onClick={() => router.push('/admin/promotions' as Parameters<typeof router.push>[0])}
-        >
-          Back
-        </Button>
-        {mode === 'edit' && form.status !== 'archived' ? (
-          <Button variant="outline" onClick={archive} disabled={pending}>
-            Archive
-          </Button>
-        ) : null}
-        <Button onClick={save} disabled={pending}>
-          {pending ? 'Saving…' : mode === 'create' ? 'Create promotion' : 'Save changes'}
-        </Button>
+        </div>
       </div>
+
+      <aside className="stack" style={{ gap: 16 }}>
+        <div className="panel panel-pad">
+          <h3 style={{ fontFamily: 'var(--serif)', fontSize: 16, marginBottom: 14 }}>
+            Configuration
+          </h3>
+          <div className="field" style={{ marginBottom: 14 }}>
+            <label>Type</label>
+            <Select
+              value={form.type}
+              onValueChange={v => set('type', v as PromotionType)}
+              disabled={mode === 'edit'}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PROMOTION_TYPES.map(t => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {mode === 'edit' ? (
+              <p className="t-sub" style={{ marginTop: 6 }}>
+                Type cannot be changed after creation.
+              </p>
+            ) : null}
+          </div>
+          <div className="field" style={{ marginBottom: 14 }}>
+            <label>Status</label>
+            <Select
+              value={form.status}
+              onValueChange={v => set('status', v as PromotionStatus)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PROMOTION_STATUSES.map(s => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="field">
+            <label htmlFor="stackable">Stackable</label>
+            <Select
+              value={form.stackable ? 'yes' : 'no'}
+              onValueChange={v => set('stackable', v === 'yes')}
+            >
+              <SelectTrigger id="stackable">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no">No</SelectItem>
+                <SelectItem value="yes">Yes</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="panel panel-pad">
+          <div className="row" style={{ gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => router.push('/admin/promotions' as Parameters<typeof router.push>[0])}
+            >
+              Back
+            </button>
+            {mode === 'edit' && form.status !== 'archived' ? (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={archive}
+                disabled={pending}
+              >
+                Archive
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="btn btn-clay btn-sm"
+              onClick={save}
+              disabled={pending}
+            >
+              {pending ? 'Saving…' : mode === 'create' ? 'Create promotion' : 'Save changes'}
+            </button>
+          </div>
+        </div>
+      </aside>
     </div>
   );
 }

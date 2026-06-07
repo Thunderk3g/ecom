@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -75,7 +74,7 @@ export function AuditFilters({
 
   return (
     <form
-      className="flex flex-wrap items-end gap-3 rounded-md border bg-background p-3"
+      className="flex w-full flex-wrap items-end gap-3"
       onSubmit={e => {
         e.preventDefault();
         push(state);
@@ -148,10 +147,12 @@ export function AuditFilters({
       </div>
 
       <div className="flex items-end gap-2">
-        <Button type="submit">Apply</Button>
-        <Button type="button" variant="outline" onClick={clearAll}>
+        <button type="submit" className="btn btn-clay btn-sm">
+          Apply
+        </button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={clearAll}>
           Clear
-        </Button>
+        </button>
       </div>
     </form>
   );

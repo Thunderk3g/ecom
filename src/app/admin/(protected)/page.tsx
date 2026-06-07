@@ -1,21 +1,12 @@
 import Link from 'next/link';
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { withTenant } from '@/modules/tenant/with-tenant';
 import { orders } from '@/db/schema/orders';
 import { customers } from '@/db/schema/customers';
 import { stockLevels, stockThresholds } from '@/db/schema/inventory';
 import { getAdminContext } from './_lib/context';
-import { PageHeader } from './_lib/ui';
 import { formatMoney, formatDateTime } from '@/lib/format';
-import { ORDER_STATUS_VARIANT } from './orders/_status';
+import { statpillClass, statusLabel } from './orders/_status';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,105 +94,145 @@ export default async function AdminDashboardPage() {
   const data = await loadDashboard(storeId);
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Dashboard" description="At-a-glance store activity." />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Orders today</CardDescription>
-            <CardTitle className="text-3xl">{data.ordersToday}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              Revenue {formatMoney(data.revenueToday)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Low-stock cells</CardDescription>
-            <CardTitle className="text-3xl">{data.lowStockCount}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Link
-              href={'/admin/inventory?lowOnly=true' as Parameters<typeof Link>[0]['href']}
-              className="text-xs text-primary hover:underline"
-            >
-              Review inventory
-            </Link>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Recent customers</CardDescription>
-            <CardTitle className="text-3xl">{data.recentCustomers.length}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Link
-              href={'/admin/customers' as Parameters<typeof Link>[0]['href']}
-              className="text-xs text-primary hover:underline"
-            >
-              View customers
-            </Link>
-          </CardContent>
-        </Card>
+    <>
+      <div className="between" style={{ marginBottom: 22 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            Dashboard
+          </h2>
+          <p className="t-sub" style={{ marginTop: 4 }}>
+            At-a-glance store activity.
+          </p>
+        </div>
+        <div className="row" style={{ gap: 10 }}>
+          <Link
+            href={'/admin/products/new' as Parameters<typeof Link>[0]['href']}
+            className="btn btn-clay btn-sm"
+          >
+            + New product
+          </Link>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Recent orders</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {data.recentOrders.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No orders yet.</p>
+      <div className="kpi-grid">
+        <div className="kpi">
+          <div className="lbl">Orders today</div>
+          <div className="v">{data.ordersToday}</div>
+          <span className="delta">Placed since midnight</span>
+        </div>
+        <div className="kpi">
+          <div className="lbl">Revenue today</div>
+          <div className="v">{formatMoney(data.revenueToday)}</div>
+          <span className="delta">Gross order value</span>
+        </div>
+        <div className="kpi">
+          <div className="lbl">Low stock</div>
+          <div className="v" style={{ color: 'oklch(0.5 0.1 78)' }}>
+            {data.lowStockCount}
+          </div>
+          <div className="row" style={{ gap: 6, marginTop: 12 }}>
+            {data.lowStockCount > 0 ? (
+              <span className="statpill sp-low">Needs action</span>
             ) : (
-              data.recentOrders.map(o => (
-                <Link
-                  key={o.id}
-                  href={`/admin/orders/${o.id}` as Parameters<typeof Link>[0]['href']}
-                  className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="font-medium">{o.number}</span>
-                    <Badge variant={ORDER_STATUS_VARIANT[o.status] ?? 'secondary'}>
-                      {o.status}
-                    </Badge>
-                  </span>
-                  <span className="text-muted-foreground">
-                    {formatMoney(o.totalCents, o.currency)}
-                  </span>
-                </Link>
-              ))
+              <span className="statpill sp-active">All stocked</span>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="lbl">New customers</div>
+          <div className="v">{data.recentCustomers.length}</div>
+          <span className="delta">Most recent signups</span>
+        </div>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">New customers</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+      <div className="adm-cols">
+        <div className="panel">
+          <div className="panel-head">
+            <h3>Recent orders</h3>
+            <Link
+              href={'/admin/orders' as Parameters<typeof Link>[0]['href']}
+              className="ucap link-u muted"
+            >
+              View all
+            </Link>
+          </div>
+          {data.recentOrders.length === 0 ? (
+            <div className="panel-pad t-sub">No orders yet.</div>
+          ) : (
+            <table className="dtable">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Customer</th>
+                  <th>Status</th>
+                  <th className="num">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recentOrders.map(o => (
+                  <tr key={o.id}>
+                    <td>
+                      <Link
+                        href={`/admin/orders/${o.id}` as Parameters<typeof Link>[0]['href']}
+                        className="t-strong"
+                      >
+                        {o.number}
+                      </Link>
+                    </td>
+                    <td className="t-sub">{o.email}</td>
+                    <td>
+                      <span className={`statpill ${statpillClass(o.status)}`}>
+                        {statusLabel(o.status)}
+                      </span>
+                    </td>
+                    <td className="num t-strong">
+                      {formatMoney(o.totalCents, o.currency)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="panel">
+          <div className="panel-head">
+            <h3>New customers</h3>
+            <Link
+              href={'/admin/customers' as Parameters<typeof Link>[0]['href']}
+              className="ucap link-u muted"
+            >
+              All
+            </Link>
+          </div>
+          <div
+            className="panel-pad stack"
+            style={{ gap: 14, paddingTop: 8 }}
+          >
             {data.recentCustomers.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No customers yet.</p>
+              <p className="t-sub">No customers yet.</p>
             ) : (
               data.recentCustomers.map(c => (
                 <Link
                   key={c.id}
                   href={`/admin/customers/${c.id}` as Parameters<typeof Link>[0]['href']}
-                  className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent"
+                  className="cellrow"
                 >
-                  <span className="truncate font-medium">{c.email}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDateTime(c.createdAt)}
+                  <span className="av">
+                    {c.email.slice(0, 2).toUpperCase()}
                   </span>
+                  <div className="grow">
+                    <div className="t-strong" style={{ fontSize: '13.5px' }}>
+                      {c.email}
+                    </div>
+                    <div className="t-sub">{formatDateTime(c.createdAt)}</div>
+                  </div>
                 </Link>
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

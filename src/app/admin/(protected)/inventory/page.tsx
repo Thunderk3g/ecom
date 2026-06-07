@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import { and, asc, eq, sql } from 'drizzle-orm';
-import { Button } from '@/components/ui/button';
 import { getAdminContext } from '../_lib/context';
-import { PageHeader } from '../_lib/ui';
 import { withTenant } from '@/modules/tenant/with-tenant';
 import { stockLevels, stockThresholds, locations } from '@/db/schema/inventory';
 import { productVariants } from '@/db/schema/catalog';
@@ -68,49 +66,49 @@ export default async function InventoryPage({
     .filter(r => (lowOnly ? r.low : true));
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Inventory"
-        description="Stock levels by variant and location."
-        action={
-          <div className="flex gap-2">
-            <Button asChild variant="outline">
-              <Link href={'/admin/inventory/movements' as Parameters<typeof Link>[0]['href']}>
-                Movements
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={'/admin/inventory/thresholds' as Parameters<typeof Link>[0]['href']}>
-                Thresholds
-              </Link>
-            </Button>
-          </div>
-        }
-      />
-
-      <div className="flex flex-wrap gap-2 text-sm">
-        <Button asChild variant={lowOnly ? 'outline' : 'default'} size="sm">
-          <Link href={'/admin/inventory' as Parameters<typeof Link>[0]['href']}>All</Link>
-        </Button>
-        <Button asChild variant={lowOnly ? 'default' : 'outline'} size="sm">
-          <Link href={'/admin/inventory?lowOnly=true' as Parameters<typeof Link>[0]['href']}>
-            Low stock only
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            Inventory
+          </h2>
+          <span className="t-sub">Stock levels by variant and location.</span>
+        </div>
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+          <Link
+            className="btn btn-ghost btn-sm"
+            href={'/admin/inventory/movements' as Parameters<typeof Link>[0]['href']}
+          >
+            Movements
           </Link>
-        </Button>
-        <span className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
-          <Link className="hover:underline" href={'/admin/inventory/locations' as Parameters<typeof Link>[0]['href']}>
+          <Link
+            className="btn btn-ghost btn-sm"
+            href={'/admin/inventory/thresholds' as Parameters<typeof Link>[0]['href']}
+          >
+            Thresholds
+          </Link>
+          <Link
+            className="btn btn-ghost btn-sm"
+            href={'/admin/inventory/locations' as Parameters<typeof Link>[0]['href']}
+          >
             Locations
           </Link>
-          <Link className="hover:underline" href={'/admin/inventory/suppliers' as Parameters<typeof Link>[0]['href']}>
+          <Link
+            className="btn btn-ghost btn-sm"
+            href={'/admin/inventory/suppliers' as Parameters<typeof Link>[0]['href']}
+          >
             Suppliers
           </Link>
-          <Link className="hover:underline" href={'/admin/inventory/purchase-orders' as Parameters<typeof Link>[0]['href']}>
+          <Link
+            className="btn btn-ghost btn-sm"
+            href={'/admin/inventory/purchase-orders' as Parameters<typeof Link>[0]['href']}
+          >
             Purchase orders
           </Link>
-        </span>
+        </div>
       </div>
 
-      <LevelsGrid rows={levels} />
-    </div>
+      <LevelsGrid rows={levels} lowOnly={lowOnly} />
+    </>
   );
 }

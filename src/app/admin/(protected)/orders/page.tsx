@@ -1,5 +1,5 @@
+import Link from 'next/link';
 import { getAdminContext } from '../_lib/context';
-import { PageHeader, CursorPager } from '../_lib/ui';
 import {
   listOrders,
   type OrderStatus,
@@ -70,32 +70,64 @@ export default async function OrdersPage({
     placedAt: o.placedAt.toISOString(),
   }));
 
+  const nextHref = buildNextHref(result.nextCursor, {
+    status,
+    customerEmail,
+    from: fromStr || undefined,
+    to: toStr || undefined,
+  });
+
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Orders"
-        description="All customer orders for this storefront."
-      />
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            Orders
+          </h2>
+          <span className="t-sub">All customer orders for this storefront.</span>
+        </div>
+      </div>
 
-      <OrdersFilters
-        status={status ?? ''}
-        customerEmail={customerEmail ?? ''}
-        from={fromStr}
-        to={toStr}
-      />
+      <div className="panel">
+        <OrdersFilters
+          status={status ?? ''}
+          customerEmail={customerEmail ?? ''}
+          from={fromStr}
+          to={toStr}
+        />
 
-      <OrdersTable rows={rows} />
+        <OrdersTable rows={rows} />
 
-      <CursorPager
-        basePath="/admin/orders"
-        nextCursor={result.nextCursor}
-        params={{
-          status,
-          customerEmail,
-          from: fromStr || undefined,
-          to: toStr || undefined,
-        }}
-      />
-    </div>
+        {nextHref ? (
+          <div className="pager">
+            <span>Showing {rows.length} orders</span>
+            <div className="pg">
+              <Link href={nextHref} className="row-act">
+                Next ›
+              </Link>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </>
   );
+}
+
+/**
+ * Builds the cursor "next page" href, carrying active filters across the hop.
+ * Returns null when there is no next cursor (mirrors CursorPager's behavior).
+ */
+function buildNextHref(
+  nextCursor: string | null,
+  params: Record<string, string | undefined>,
+): Parameters<typeof Link>[0]['href'] | null {
+  if (!nextCursor) return null;
+  const search = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== '') search.set(k, v);
+  }
+  search.set('after', nextCursor);
+  return `/admin/orders?${search.toString()}` as Parameters<
+    typeof Link
+  >[0]['href'];
 }

@@ -1,15 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { listPages, type PageStatus } from '@/modules/cms/pages';
 import {
   getCmsAdminContext,
@@ -20,10 +11,10 @@ import { CreatePageDialog } from '../_components/CreatePageDialog';
 
 export const dynamic = 'force-dynamic';
 
-function statusVariant(status: PageStatus): 'default' | 'secondary' | 'outline' {
-  if (status === 'published') return 'default';
-  if (status === 'archived') return 'outline';
-  return 'secondary';
+function statusClass(status: PageStatus): string {
+  if (status === 'published') return 'sp-active';
+  if (status === 'archived') return 'sp-out';
+  return 'sp-draft';
 }
 
 export default async function CmsPagesPage() {
@@ -39,56 +30,62 @@ export default async function CmsPagesPage() {
   const pages = await listPages(ctx.storeId);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Content pages</h1>
-          <p className="text-muted-foreground">Build and publish marketing pages from blocks.</p>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>Content pages</h2>
+          <span className="t-sub">Build and publish marketing pages from blocks.</span>
         </div>
         <CreatePageDialog />
       </div>
 
       {pages.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
-          No pages yet. Create your first content page.
+        <div className="panel">
+          <div className="panel-pad t-sub" style={{ textAlign: 'center', padding: 48 }}>
+            No pages yet. Create your first content page.
+          </div>
         </div>
       ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Updated</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className="panel">
+          <div className="panel-head">
+            <h3>Pages</h3>
+            <span className="t-sub">{pages.length} total</span>
+          </div>
+          <table className="dtable">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Slug</th>
+                <th>Status</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
               {pages.map(page => (
-                <TableRow key={page.id}>
-                  <TableCell className="font-medium">
+                <tr key={page.id}>
+                  <td>
                     <Link
                       href={`/admin/cms/pages/${page.id}` as `/admin/cms/pages/${string}`}
-                      className="hover:underline"
+                      className="t-strong"
                     >
                       {page.title}
                     </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">/{page.slug}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant(page.status)} className="capitalize">
+                  </td>
+                  <td className="t-sub">/{page.slug}</td>
+                  <td>
+                    <span className={`statpill ${statusClass(page.status)}`} style={{ textTransform: 'capitalize' }}>
                       {page.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
+                    </span>
+                  </td>
+                  <td className="t-sub">
                     {new Date(page.updatedAt).toLocaleDateString()}
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
       )}
-    </div>
+    </>
   );
 }

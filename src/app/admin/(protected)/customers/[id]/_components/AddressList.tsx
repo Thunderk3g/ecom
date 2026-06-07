@@ -2,9 +2,6 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   deleteAddressAction,
   setDefaultAddressAction,
@@ -78,20 +75,18 @@ export function AddressList({
     : null;
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button size="sm" onClick={startCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add address
-        </Button>
+    <div className="stack" style={{ gap: 12 }}>
+      <div className="between">
+        <span className="t-sub">Saved addresses</span>
+        <button type="button" className="btn btn-clay btn-sm" onClick={startCreate}>
+          + Add address
+        </button>
       </div>
 
       {addresses.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No saved addresses for this customer.
-        </p>
+        <p className="t-sub">No saved addresses for this customer.</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="stack" style={{ gap: 10, listStyle: 'none', padding: 0 }}>
           {addresses.map(a => {
             const canBeBillingDefault = a.type === 'billing' || a.type === 'both';
             const canBeShippingDefault =
@@ -99,63 +94,73 @@ export function AddressList({
             return (
               <li
                 key={a.id}
-                className="flex flex-col gap-3 rounded-md border p-4 text-sm md:flex-row md:items-start md:justify-between"
+                style={{
+                  border: '1px solid var(--line)',
+                  borderRadius: 'var(--r-sm)',
+                  padding: 16,
+                }}
               >
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{a.name}</span>
-                    <Badge variant="secondary">{a.type}</Badge>
-                    {a.isDefault ? <Badge>Default</Badge> : null}
+                <div className="between" style={{ alignItems: 'flex-start', gap: 12 }}>
+                  <div>
+                    <div className="row" style={{ gap: 8, marginBottom: 4 }}>
+                      <span className="t-strong">{a.name}</span>
+                      <span className="statpill sp-draft">{a.type}</span>
+                      {a.isDefault ? (
+                        <span className="statpill sp-active">Default</span>
+                      ) : null}
+                    </div>
+                    <div className="t-sub" style={{ lineHeight: 1.6 }}>
+                      {a.line1}
+                      {a.line2 ? `, ${a.line2}` : ''}
+                      <br />
+                      {a.city}, {a.region} {a.postal}, {a.country}
+                      {a.phone ? (
+                        <>
+                          <br />
+                          {a.phone}
+                        </>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="text-muted-foreground">
-                    {a.line1}
-                    {a.line2 ? `, ${a.line2}` : ''}
-                  </div>
-                  <div className="text-muted-foreground">
-                    {a.city}, {a.region} {a.postal}, {a.country}
-                  </div>
-                  {a.phone ? (
-                    <div className="text-muted-foreground">{a.phone}</div>
-                  ) : null}
-                </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={pending}
-                    onClick={() => startEdit(a)}
-                  >
-                    Edit
-                  </Button>
-                  {canBeBillingDefault ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
+                  <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
                       disabled={pending}
-                      onClick={() => setDefault(a.id, 'billing')}
+                      onClick={() => startEdit(a)}
                     >
-                      Set default billing
-                    </Button>
-                  ) : null}
-                  {canBeShippingDefault ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
+                      Edit
+                    </button>
+                    {canBeBillingDefault ? (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        disabled={pending}
+                        onClick={() => setDefault(a.id, 'billing')}
+                      >
+                        Set default billing
+                      </button>
+                    ) : null}
+                    {canBeShippingDefault ? (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        disabled={pending}
+                        onClick={() => setDefault(a.id, 'shipping')}
+                      >
+                        Set default shipping
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
                       disabled={pending}
-                      onClick={() => setDefault(a.id, 'shipping')}
+                      onClick={() => remove(a.id)}
                     >
-                      Set default shipping
-                    </Button>
-                  ) : null}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={pending}
-                    onClick={() => remove(a.id)}
-                  >
-                    Delete
-                  </Button>
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </li>
             );

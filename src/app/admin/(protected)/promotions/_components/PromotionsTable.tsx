@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/admin/DataTable';
 import { formatMoney, formatDateTime } from '@/lib/format';
 
@@ -23,11 +22,11 @@ export type PromotionListRow = {
   endsAt: string | null;
 };
 
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
-  active: 'default',
-  draft: 'secondary',
-  paused: 'secondary',
-  archived: 'outline',
+const STATUS_PILL: Record<string, string> = {
+  active: 'sp-active',
+  draft: 'sp-draft',
+  paused: 'sp-low',
+  archived: 'sp-draft',
 };
 
 const TYPE_LABEL: Record<PromotionListRow['type'], string> = {
@@ -77,10 +76,10 @@ export function PromotionsTable({ rows }: { rows: PromotionListRow[] }) {
         header: 'Code',
         cell: ({ row }) => (
           <div>
-            <div className="font-mono text-sm">
-              {row.original.code ?? <span className="text-muted-foreground">auto</span>}
+            <div className="t-strong" style={{ fontFamily: 'ui-monospace,monospace' }}>
+              {row.original.code ?? <span className="t-sub">auto</span>}
             </div>
-            <div className="text-xs text-muted-foreground">{row.original.name}</div>
+            <div className="t-sub">{row.original.name}</div>
           </div>
         ),
       },
@@ -115,9 +114,9 @@ export function PromotionsTable({ rows }: { rows: PromotionListRow[] }) {
         accessorKey: 'status',
         header: 'Status',
         cell: ({ row }) => (
-          <Badge variant={STATUS_VARIANT[row.original.status] ?? 'secondary'}>
+          <span className={`statpill ${STATUS_PILL[row.original.status] ?? 'sp-draft'}`}>
             {row.original.status}
-          </Badge>
+          </span>
         ),
       },
     ],

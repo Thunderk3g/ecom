@@ -1,7 +1,8 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getAdminContext } from '../../_lib/context';
-import { PageHeader } from '../../_lib/ui';
 import { flattenCategories } from '../../_lib/categories';
+import { statpillClass, statusLabel } from '../../orders/_status';
 import { getProductBySlug, getProductById } from '@/modules/catalog/products';
 import { listVariants } from '@/modules/catalog/variants';
 import { getAdminCategoryTree } from '@/modules/catalog/categories';
@@ -38,8 +39,30 @@ export default async function EditProductPage({
   }));
 
   return (
-    <div className="space-y-4">
-      <PageHeader title={product.name} description={`/${product.slug}`} />
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div className="row" style={{ gap: 14 }}>
+          <Link
+            href={'/admin/products' as Parameters<typeof Link>[0]['href']}
+            className="icon-btn"
+            style={{ color: 'var(--ink-2)' }}
+            aria-label="Back to products"
+          >
+            ←
+          </Link>
+          <div>
+            <div className="row" style={{ gap: 10 }}>
+              <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+                {product.name}
+              </h2>
+              <span className={`statpill ${statpillClass(product.status)}`}>
+                {statusLabel(product.status)}
+              </span>
+            </div>
+            <span className="t-sub">/{product.slug}</span>
+          </div>
+        </div>
+      </div>
       <ProductEditor
         mode="edit"
         productId={product.id}
@@ -57,6 +80,6 @@ export default async function EditProductPage({
         categories={categories}
         variants={variants}
       />
-    </div>
+    </>
   );
 }

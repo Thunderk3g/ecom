@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 
+import { SPACING_VALUES } from './spacing';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -58,18 +60,6 @@ const RADIUS_OPTIONS = ['0px', '4px', '6px', '8px', '12px', '16px'] as const;
 
 // Mapping from the friendly t-shirt scale to the numeric multiplier persisted
 // in site_config.theme.spacingScale.
-const SPACING_VALUES: Record<'sm' | 'md' | 'lg', number> = {
-  sm: 0.875,
-  md: 1.0,
-  lg: 1.25,
-};
-
-export function scaleToSize(scale: number): 'sm' | 'md' | 'lg' {
-  if (scale <= 0.95) return 'sm';
-  if (scale >= 1.1) return 'lg';
-  return 'md';
-}
-
 export function ThemeTab({ initial }: ThemeTabProps) {
   const [pending, startTransition] = useTransition();
   const form = useForm<ThemeFormValues>({

@@ -1,5 +1,4 @@
 import { getAdminContext } from '../_lib/context';
-import { PageHeader } from '../_lib/ui';
 import { listAttributes } from '@/modules/catalog/attributes';
 import { AttributesManager, type AttributeRow } from './AttributesManager';
 
@@ -20,13 +19,5 @@ export default async function AttributesPage() {
     required: d.required,
   }));
 
-  return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Attributes"
-        description="Define the product attribute registry used for facets and validation."
-      />
-      <AttributesManager rows={rows} />
-    </div>
-  );
+  return <AttributesManager rows={rows} />;
 }

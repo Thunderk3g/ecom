@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type CSSProperties } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -13,14 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { adjustStockAction } from './actions';
 
 export type LevelRow = {
@@ -36,7 +28,20 @@ export type LevelRow = {
   low: boolean;
 };
 
-export function LevelsGrid({ rows }: { rows: LevelRow[] }) {
+/** Inline styles matching the `.seg button` / `.seg button.on` look for anchor toggles. */
+function segStyle(active: boolean): CSSProperties {
+  return {
+    padding: '7px 14px',
+    borderRadius: 'var(--r-pill)',
+    fontSize: '12.5px',
+    fontWeight: 600,
+    color: active ? 'var(--ink)' : 'var(--ink-3)',
+    background: active ? 'var(--card)' : 'none',
+    boxShadow: active ? 'var(--shadow-card)' : 'none',
+  };
+}
+
+export function LevelsGrid({ rows, lowOnly }: { rows: LevelRow[]; lowOnly: boolean }) {
   const [target, setTarget] = useState<LevelRow | null>(null);
   const [delta, setDelta] = useState('');
   const [reason, setReason] = useState('');
@@ -73,53 +78,84 @@ export function LevelsGrid({ rows }: { rows: LevelRow[] }) {
 
   return (
     <>
-      <div className="rounded-md border bg-background">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>SKU</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead className="text-right">On hand</TableHead>
-              <TableHead className="text-right">Reserved</TableHead>
-              <TableHead className="text-right">Available</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <div className="panel">
+        <div className="tbar">
+          <div className="seg">
+            <Link
+              href={'/admin/inventory' as Parameters<typeof Link>[0]['href']}
+              style={segStyle(!lowOnly)}
+            >
+              All
+            </Link>
+            <Link
+              href={'/admin/inventory?lowOnly=true' as Parameters<typeof Link>[0]['href']}
+              style={segStyle(lowOnly)}
+            >
+              Low stock only
+            </Link>
+          </div>
+        </div>
+        <table className="dtable">
+          <thead>
+            <tr>
+              <th>Variant</th>
+              <th>Location</th>
+              <th className="num">On hand</th>
+              <th className="num">Reserved</th>
+              <th className="num">Available</th>
+              <th className="num">Reorder point</th>
+              <th>Status</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
             {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+              <tr>
+                <td colSpan={8} style={{ textAlign: 'center', color: 'var(--ink-3)', padding: '40px 16px' }}>
                   No stock records.
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ) : (
               rows.map(row => (
-                <TableRow key={`${row.variantId}:${row.locationId}`}>
-                  <TableCell>
-                    <div className="font-medium">{row.sku}</div>
-                    {row.variantName ? (
-                      <div className="text-xs text-muted-foreground">{row.variantName}</div>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>{row.locationName}</TableCell>
-                  <TableCell className="text-right">{row.onHand}</TableCell>
-                  <TableCell className="text-right">{row.reserved}</TableCell>
-                  <TableCell className="text-right">
-                    <span className="inline-flex items-center gap-2">
-                      {row.available}
-                      {row.low ? <Badge variant="destructive">Low</Badge> : null}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => openAdjust(row)}>
+                <tr key={`${row.variantId}:${row.locationId}`}>
+                  <td>
+                    <div className="cellrow">
+                      <div>
+                        <div className="t-strong">{row.sku}</div>
+                        {row.variantName ? (
+                          <div className="t-sub">{row.variantName}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </td>
+                  <td>{row.locationName}</td>
+                  <td className="num">{row.onHand}</td>
+                  <td className="num">{row.reserved}</td>
+                  <td className="num t-strong">{row.available}</td>
+                  <td className="num t-sub">{row.reorderPoint ?? '—'}</td>
+                  <td>
+                    {row.available <= 0 ? (
+                      <span className="statpill sp-out">Out</span>
+                    ) : row.low ? (
+                      <span className="statpill sp-low">Low</span>
+                    ) : (
+                      <span className="statpill sp-active">In stock</span>
+                    )}
+                  </td>
+                  <td className="num">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => openAdjust(row)}
+                    >
                       Adjust
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                    </button>
+                  </td>
+                </tr>
               ))
             )}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
 
       <Dialog open={target !== null} onOpenChange={o => (o ? null : setTarget(null))}>

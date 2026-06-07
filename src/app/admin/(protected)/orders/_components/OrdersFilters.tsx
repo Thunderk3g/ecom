@@ -2,11 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { ORDER_STATUSES } from '../_status';
-
-const ALL = '__all__';
+import { ORDER_STATUSES, statusLabel } from '../_status';
 
 export function OrdersFilters({
   status,
@@ -36,108 +32,100 @@ export function OrdersFilters({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        <ChipButton
-          active={!status}
+    <form
+      className="tbar"
+      onSubmit={e => {
+        e.preventDefault();
+        apply({
+          customerEmail: emailInput.trim(),
+          from: fromInput,
+          to: toInput,
+        });
+      }}
+    >
+      <div className="seg">
+        <button
+          type="button"
+          className={!status ? 'on' : undefined}
           onClick={() => apply({ status: '' })}
-          label="All"
-        />
+        >
+          All
+        </button>
         {ORDER_STATUSES.map(s => (
-          <ChipButton
+          <button
             key={s}
-            active={status === s}
+            type="button"
+            className={status === s ? 'on' : undefined}
             onClick={() => apply({ status: status === s ? '' : s })}
-            label={s.replace('_', ' ')}
-          />
+          >
+            {statusLabel(s)}
+          </button>
         ))}
       </div>
 
-      <form
-        className="flex flex-wrap items-end gap-3"
-        onSubmit={e => {
-          e.preventDefault();
-          apply({
-            customerEmail: emailInput.trim(),
-            from: fromInput,
-            to: toInput,
-          });
+      <div className="grow" />
+
+      <label className="search" style={{ maxWidth: 240, padding: '8px 14px' }}>
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.2-3.2" />
+        </svg>
+        <input
+          aria-label="Customer email"
+          value={emailInput}
+          onChange={e => setEmailInput(e.target.value)}
+          placeholder="Customer email…"
+        />
+      </label>
+
+      <input
+        className="input"
+        type="date"
+        aria-label="From date"
+        value={fromInput}
+        style={{ width: 150 }}
+        onChange={e => {
+          setFromInput(e.target.value);
+          apply({ from: e.target.value });
         }}
-      >
-        <div className="w-64 space-y-1.5">
-          <label className="text-xs text-muted-foreground" htmlFor="customerEmail">
-            Customer email
-          </label>
-          <Input
-            id="customerEmail"
-            value={emailInput}
-            onChange={e => setEmailInput(e.target.value)}
-            placeholder="exact match"
-          />
-        </div>
-        <div className="w-44 space-y-1.5">
-          <label className="text-xs text-muted-foreground" htmlFor="from">
-            From
-          </label>
-          <Input
-            id="from"
-            type="date"
-            value={fromInput}
-            onChange={e => setFromInput(e.target.value)}
-          />
-        </div>
-        <div className="w-44 space-y-1.5">
-          <label className="text-xs text-muted-foreground" htmlFor="to">
-            To
-          </label>
-          <Input
-            id="to"
-            type="date"
-            value={toInput}
-            onChange={e => setToInput(e.target.value)}
-          />
-        </div>
-        <Button type="submit" variant="outline">
-          Apply
-        </Button>
-        {(customerEmail || from || to) ? (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              setEmailInput('');
-              setFromInput('');
-              setToInput('');
-              apply({ customerEmail: '', from: '', to: '' });
-            }}
-          >
-            Clear
-          </Button>
-        ) : null}
-      </form>
-    </div>
-  );
-}
+      />
+      <input
+        className="input"
+        type="date"
+        aria-label="To date"
+        value={toInput}
+        style={{ width: 150 }}
+        onChange={e => {
+          setToInput(e.target.value);
+          apply({ to: e.target.value });
+        }}
+      />
 
-void ALL;
-
-function ChipButton({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <Button
-      type="button"
-      size="sm"
-      variant={active ? 'default' : 'outline'}
-      onClick={onClick}
-    >
-      {label}
-    </Button>
+      <button type="submit" className="btn btn-ghost btn-sm">
+        Apply
+      </button>
+      {(customerEmail || from || to) ? (
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          onClick={() => {
+            setEmailInput('');
+            setFromInput('');
+            setToInput('');
+            apply({ customerEmail: '', from: '', to: '' });
+          }}
+        >
+          Clear
+        </button>
+      ) : null}
+    </form>
   );
 }

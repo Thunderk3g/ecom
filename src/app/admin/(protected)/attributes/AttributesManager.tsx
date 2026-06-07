@@ -5,14 +5,12 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -21,14 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   createAttributeAction,
   updateAttributeAction,
@@ -134,12 +124,22 @@ export function AttributesManager({ rows }: { rows: AttributeRow[] }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate}>New attribute</Button>
-          </DialogTrigger>
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            Attributes
+          </h2>
+          <span className="t-sub">
+            Define the product attribute registry used for facets and validation.
+          </span>
+        </div>
+        <button type="button" className="btn btn-clay btn-sm" onClick={openCreate}>
+          + New attribute
+        </button>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editingId ? 'Edit attribute' : 'New attribute'}</DialogTitle>
@@ -227,56 +227,77 @@ export function AttributesManager({ rows }: { rows: AttributeRow[] }) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
 
-      <div className="rounded-md border bg-background">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Label</TableHead>
-              <TableHead>Key</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Filterable</TableHead>
-              <TableHead>Required</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Attribute registry</h3>
+        </div>
+        <table className="dtable">
+          <thead>
+            <tr>
+              <th>Label</th>
+              <th>Key</th>
+              <th>Type</th>
+              <th>Enum values</th>
+              <th>Filterable</th>
+              <th>Required</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
             {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--ink-3)', padding: '40px 16px' }}>
                   No attributes defined.
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ) : (
               rows.map(row => (
-                <TableRow key={row.id}>
-                  <TableCell className="font-medium">{row.label}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.key}</TableCell>
-                  <TableCell>
+                <tr key={row.id}>
+                  <td className="t-strong">{row.label}</td>
+                  <td className="t-sub" style={{ fontFamily: 'ui-monospace,monospace' }}>
+                    {row.key}
+                  </td>
+                  <td>
                     {row.dataType}
                     {row.unit ? ` (${row.unit})` : ''}
-                  </TableCell>
-                  <TableCell>
-                    {row.filterable ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}
-                  </TableCell>
-                  <TableCell>
-                    {row.required ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
+                  </td>
+                  <td className="t-sub">
+                    {row.enumValues.length > 0 ? row.enumValues.join(', ') : '—'}
+                  </td>
+                  <td>
+                    {row.filterable ? (
+                      <span className="statpill sp-active">Yes</span>
+                    ) : (
+                      <span className="statpill sp-draft">No</span>
+                    )}
+                  </td>
+                  <td>
+                    {row.required ? (
+                      <span className="statpill sp-active">Yes</span>
+                    ) : (
+                      <span className="statpill sp-draft">No</span>
+                    )}
+                  </td>
+                  <td className="num">
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(row)}>
                       Edit
-                    </Button>
-                    <Button variant="ghost" size="sm" disabled={pending} onClick={() => remove(row.id)}>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={pending}
+                      onClick={() => remove(row.id)}
+                    >
                       Delete
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                    </button>
+                  </td>
+                </tr>
               ))
             )}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
-    </div>
+    </>
   );
 }

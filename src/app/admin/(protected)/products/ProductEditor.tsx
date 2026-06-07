@@ -4,25 +4,6 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { formatMoney, centsToInput, parseMoneyToCents } from '@/lib/format';
 import {
   createProductAction,
@@ -62,6 +43,7 @@ export function ProductEditor({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [form, setForm] = useState<ProductBasicsInput>(initial);
+  const [tab, setTab] = useState<'basics' | 'variants' | 'media' | 'seo'>('basics');
 
   function set<K extends keyof ProductBasicsInput>(key: K, value: ProductBasicsInput[K]) {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -85,157 +67,204 @@ export function ProductEditor({
     });
   }
 
-  return (
-    <div className="space-y-4">
-      <Tabs defaultValue="basics">
-        <TabsList>
-          <TabsTrigger value="basics">Basics</TabsTrigger>
-          <TabsTrigger value="variants" disabled={mode === 'create'}>
-            Variants
-          </TabsTrigger>
-          <TabsTrigger value="media" disabled={mode === 'create'}>
-            Media
-          </TabsTrigger>
-          <TabsTrigger value="seo">SEO</TabsTrigger>
-        </TabsList>
+  const tabs: Array<{ id: typeof tab; label: string; disabled?: boolean }> = [
+    { id: 'basics', label: 'General' },
+    { id: 'variants', label: 'Variants', disabled: mode === 'create' },
+    { id: 'media', label: 'Media', disabled: mode === 'create' },
+    { id: 'seo', label: 'SEO' },
+  ];
 
-        <TabsContent value="basics">
-          <Card>
-            <CardContent className="space-y-4 pt-6">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
+  return (
+    <>
+      <div className="adm-tabs">
+        {tabs.map(t => (
+          <a
+            key={t.id}
+            href="#"
+            className={tab === t.id ? 'on' : undefined}
+            aria-disabled={t.disabled || undefined}
+            onClick={e => {
+              e.preventDefault();
+              if (!t.disabled) setTab(t.id);
+            }}
+            style={t.disabled ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
+          >
+            {t.label}
+          </a>
+        ))}
+      </div>
+
+      <div className="adm-form-grid">
+        <div className="stack" style={{ gap: 16 }}>
+          {tab === 'basics' ? (
+            <div className="panel panel-pad">
+              <h3 style={{ fontFamily: 'var(--serif)', fontSize: 16, marginBottom: 16 }}>
+                Details
+              </h3>
+              <div className="grid-2" style={{ gap: 16 }}>
+                <div className="field full">
+                  <label htmlFor="name">Product name</label>
+                  <input
                     id="name"
+                    className="input"
                     value={form.name}
                     onChange={e => set('name', e.target.value)}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="slug">Slug</Label>
-                  <Input
+                <div className="field full">
+                  <label htmlFor="slug">URL slug</label>
+                  <input
                     id="slug"
+                    className="input"
+                    style={{ fontFamily: 'ui-monospace,monospace', fontSize: 13 }}
                     value={form.slug}
                     onChange={e => set('slug', e.target.value)}
                   />
                 </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="description">Description (Markdown)</Label>
-                <Textarea
-                  id="description"
-                  rows={6}
-                  value={form.descriptionMd ?? ''}
-                  onChange={e => set('descriptionMd', e.target.value)}
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="brand">Brand</Label>
-                  <Input
-                    id="brand"
-                    value={form.brand ?? ''}
-                    onChange={e => set('brand', e.target.value)}
+                <div className="field full">
+                  <label htmlFor="description">
+                    Description <span className="muted">· Markdown</span>
+                  </label>
+                  <textarea
+                    id="description"
+                    className="input"
+                    rows={6}
+                    value={form.descriptionMd ?? ''}
+                    onChange={e => set('descriptionMd', e.target.value)}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Category</Label>
-                  <Select
-                    value={form.categoryId || NONE}
-                    onValueChange={v => set('categoryId', v === NONE ? '' : v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>None</SelectItem>
-                      {categories.map(c => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Type</Label>
-                  <Select value={form.type} onValueChange={v => set('type', v as ProductBasicsInput['type'])}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="simple">Simple</SelectItem>
-                      <SelectItem value="bundle">Bundle</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Status</Label>
-                  <Select value={form.status} onValueChange={v => set('status', v as ProductBasicsInput['status'])}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="archived">Archived</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="variants">
-          {mode === 'edit' && productId ? (
-            <VariantsPanel productId={productId} variants={variants} />
+            </div>
           ) : null}
-        </TabsContent>
 
-        <TabsContent value="media">
-          <Card>
-            <CardContent className="pt-6 text-sm text-muted-foreground">
+          {tab === 'variants' ? (
+            mode === 'edit' && productId ? (
+              <VariantsPanel productId={productId} variants={variants} />
+            ) : null
+          ) : null}
+
+          {tab === 'media' ? (
+            <div className="panel panel-pad t-sub">
               Media management is delivered by the asset pipeline (SP-8). Product
               images can be attached there once the asset library ships.
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          ) : null}
 
-        <TabsContent value="seo">
-          <Card>
-            <CardContent className="space-y-4 pt-6">
-              <div className="space-y-1.5">
-                <Label htmlFor="seoTitle">SEO title</Label>
-                <Input
-                  id="seoTitle"
-                  value={form.seoTitle ?? ''}
-                  onChange={e => set('seoTitle', e.target.value)}
-                />
+          {tab === 'seo' ? (
+            <div className="panel panel-pad">
+              <h3 style={{ fontFamily: 'var(--serif)', fontSize: 16, marginBottom: 16 }}>
+                SEO
+              </h3>
+              <div className="stack" style={{ gap: 16 }}>
+                <div className="field">
+                  <label htmlFor="seoTitle">SEO title</label>
+                  <input
+                    id="seoTitle"
+                    className="input"
+                    value={form.seoTitle ?? ''}
+                    onChange={e => set('seoTitle', e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="seoDescription">SEO description</label>
+                  <textarea
+                    id="seoDescription"
+                    className="input"
+                    rows={3}
+                    value={form.seoDescription ?? ''}
+                    onChange={e => set('seoDescription', e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="seoDescription">SEO description</Label>
-                <Textarea
-                  id="seoDescription"
-                  rows={3}
-                  value={form.seoDescription ?? ''}
-                  onChange={e => set('seoDescription', e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          ) : null}
 
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={() => router.push('/admin/products' as Parameters<typeof router.push>[0])}>
-          Back
-        </Button>
-        <Button onClick={saveBasics} disabled={pending}>
-          {pending ? 'Saving…' : mode === 'create' ? 'Create product' : 'Save changes'}
-        </Button>
+          <div className="row" style={{ justifyContent: 'flex-end', gap: 10 }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() =>
+                router.push('/admin/products' as Parameters<typeof router.push>[0])
+              }
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              className="btn btn-clay btn-sm"
+              onClick={saveBasics}
+              disabled={pending}
+            >
+              {pending ? 'Saving…' : mode === 'create' ? 'Create product' : 'Save changes'}
+            </button>
+          </div>
+        </div>
+
+        <aside className="stack" style={{ gap: 16 }}>
+          <div className="panel panel-pad">
+            <h3 style={{ fontFamily: 'var(--serif)', fontSize: 16, marginBottom: 14 }}>
+              Status
+            </h3>
+            <div className="field" style={{ marginBottom: 14 }}>
+              <label htmlFor="status">Visibility</label>
+              <select
+                id="status"
+                className="select"
+                value={form.status}
+                onChange={e => set('status', e.target.value as ProductBasicsInput['status'])}
+              >
+                <option value="active">Active — visible</option>
+                <option value="draft">Draft — hidden</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="type">Type</label>
+              <select
+                id="type"
+                className="select"
+                value={form.type}
+                onChange={e => set('type', e.target.value as ProductBasicsInput['type'])}
+              >
+                <option value="simple">Simple</option>
+                <option value="bundle">Bundle</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="panel panel-pad">
+            <h3 style={{ fontFamily: 'var(--serif)', fontSize: 16, marginBottom: 14 }}>
+              Organisation
+            </h3>
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label htmlFor="brand">Brand</label>
+              <input
+                id="brand"
+                className="input"
+                value={form.brand ?? ''}
+                onChange={e => set('brand', e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="category">Category</label>
+              <select
+                id="category"
+                className="select"
+                value={form.categoryId || NONE}
+                onChange={e => set('categoryId', e.target.value === NONE ? '' : e.target.value)}
+              >
+                <option value={NONE}>None</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </aside>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -298,90 +327,133 @@ function VariantsPanel({
   }
 
   return (
-    <Card>
-      <CardContent className="space-y-4 pt-6">
-        <div className="space-y-2">
-          {variants.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No variants yet.</p>
-          ) : (
-            variants.map(v => (
-              <div
-                key={v.id}
-                className="flex items-center justify-between rounded-md border p-3 text-sm"
-              >
-                <div>
-                  <div className="font-medium">{v.name ?? v.sku}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {v.sku} · {formatMoney(v.priceCents)}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={v.status === 'active' ? 'default' : 'secondary'}>
-                    {v.status}
-                  </Badge>
-                  <Select
+    <div className="panel">
+      <div className="panel-head">
+        <h3>
+          Variants{' '}
+          <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>
+            · {variants.length}
+          </span>
+        </h3>
+      </div>
+
+      {variants.length === 0 ? (
+        <div className="panel-pad t-sub">No variants yet.</div>
+      ) : (
+        <table className="dtable">
+          <thead>
+            <tr>
+              <th>Variant</th>
+              <th>SKU</th>
+              <th className="num">Price</th>
+              <th className="num">Compare-at</th>
+              <th>Status</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {variants.map(v => (
+              <tr key={v.id}>
+                <td className="t-strong">{v.name ?? v.sku}</td>
+                <td className="t-sub">{v.sku}</td>
+                <td className="num">{formatMoney(v.priceCents)}</td>
+                <td className="num muted">
+                  {v.compareAtCents != null ? formatMoney(v.compareAtCents) : '—'}
+                </td>
+                <td>
+                  <select
+                    className="select"
+                    aria-label={`Status for ${v.name ?? v.sku}`}
                     value={v.status}
-                    onValueChange={s => changeStatus(v, s as EditorVariant['status'])}
+                    onChange={e =>
+                      changeStatus(v, e.target.value as EditorVariant['status'])
+                    }
+                    style={{ height: 32, padding: '4px 28px 4px 10px', fontSize: 12.5 }}
                   >
-                    <SelectTrigger className="h-8 w-28">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="archived">Archived</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                    <option value="draft">Draft</option>
+                    <option value="active">Active</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </td>
+                <td className="num">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
                     disabled={pending}
                     onClick={() => removeVariant(v.id)}
                   >
                     Delete
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
-        <div className="grid items-end gap-3 border-t pt-4 sm:grid-cols-5">
-          <div className="space-y-1.5">
-            <Label htmlFor="vsku">SKU</Label>
-            <Input id="vsku" value={draft.sku} onChange={e => setDraft({ ...draft, sku: e.target.value })} />
+      <div className="panel-pad" style={{ borderTop: '1px solid var(--line)' }}>
+        <div
+          className="grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gap: 12,
+            alignItems: 'end',
+          }}
+        >
+          <div className="field">
+            <label htmlFor="vsku">SKU</label>
+            <input
+              id="vsku"
+              className="input"
+              value={draft.sku}
+              onChange={e => setDraft({ ...draft, sku: e.target.value })}
+            />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="vname">Name</Label>
-            <Input id="vname" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} />
+          <div className="field">
+            <label htmlFor="vname">Name</label>
+            <input
+              id="vname"
+              className="input"
+              value={draft.name}
+              onChange={e => setDraft({ ...draft, name: e.target.value })}
+            />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="vprice">Price</Label>
-            <Input
+          <div className="field">
+            <label htmlFor="vprice">Price</label>
+            <input
               id="vprice"
+              className="input"
               value={draft.price}
               onChange={e => setDraft({ ...draft, price: e.target.value })}
               placeholder={centsToInput(0)}
             />
           </div>
-          <div className="space-y-1.5">
-            <Label>Status</Label>
-            <Select value={draft.status} onValueChange={s => setDraft({ ...draft, status: s as EditorVariant['status'] })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="field">
+            <label htmlFor="vstatus">Status</label>
+            <select
+              id="vstatus"
+              className="select"
+              value={draft.status}
+              onChange={e =>
+                setDraft({ ...draft, status: e.target.value as EditorVariant['status'] })
+              }
+            >
+              <option value="draft">Draft</option>
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+            </select>
           </div>
-          <Button onClick={addVariant} disabled={pending}>
+          <button
+            type="button"
+            className="btn btn-clay btn-sm"
+            onClick={addVariant}
+            disabled={pending}
+          >
             Add variant
-          </Button>
+          </button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

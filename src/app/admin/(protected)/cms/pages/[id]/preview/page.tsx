@@ -2,8 +2,6 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { getPageAdmin, type ContentVersionRow } from '@/modules/cms/pages';
 import { verifyPreviewToken } from '@/modules/cms/preview';
 import { isBlockKind } from '@/modules/cms/blocks';
@@ -82,46 +80,63 @@ export default async function CmsPagePreview({
   );
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex items-center justify-between">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link href={`/admin/cms/pages/${id}` as `/admin/cms/pages/${string}`}>
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Back to editor
-          </Link>
-        </Button>
-        <Badge variant="outline">Draft preview</Badge>
+    <div className="wrap" style={{ maxWidth: 820 }}>
+      <div className="between" style={{ marginBottom: 16 }}>
+        <Link
+          href={`/admin/cms/pages/${id}` as `/admin/cms/pages/${string}`}
+          className="t-sub"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to editor
+        </Link>
+        <span className="statpill sp-draft">Draft preview</span>
       </div>
 
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{admin.page.title}</h1>
-        <p className="text-muted-foreground">/{admin.page.slug}</p>
+      <div style={{ marginBottom: 20 }}>
+        <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>{admin.page.title}</h2>
+        <span className="t-sub">/{admin.page.slug}</span>
       </div>
 
       {target.seo ? (
-        <div className="rounded-lg border bg-muted/40 p-4 text-sm">
-          <p className="font-medium">SEO</p>
-          {target.seo.title ? <p>Title: {target.seo.title}</p> : null}
-          {target.seo.description ? <p>Description: {target.seo.description}</p> : null}
+        <div className="panel" style={{ marginBottom: 16 }}>
+          <div className="panel-pad" style={{ fontSize: 13.5 }}>
+            <p className="t-strong" style={{ marginBottom: 4 }}>SEO</p>
+            {target.seo.title ? <p className="t-sub">Title: {target.seo.title}</p> : null}
+            {target.seo.description ? <p className="t-sub">Description: {target.seo.description}</p> : null}
+          </div>
         </div>
       ) : null}
 
       {blocks.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-          This draft has no blocks.
-        </p>
+        <div className="panel">
+          <p className="panel-pad t-sub" style={{ textAlign: 'center', padding: 40 }}>
+            This draft has no blocks.
+          </p>
+        </div>
       ) : (
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {blocks.map((block, i) => {
             const kind = block.kind as keyof typeof BLOCK_SPECS;
             return (
-              <section key={i} className="rounded-lg border bg-background p-4">
-                <header className="mb-2 flex items-center gap-2">
-                  <Badge variant="secondary">{BLOCK_SPECS[kind].label}</Badge>
-                </header>
-                <pre className="overflow-x-auto rounded bg-muted p-3 text-xs">
-                  {JSON.stringify(block.props, null, 2)}
-                </pre>
+              <section key={i} className="panel">
+                <div className="panel-head">
+                  <h3>{BLOCK_SPECS[kind].label}</h3>
+                </div>
+                <div className="panel-pad">
+                  <pre
+                    style={{
+                      overflowX: 'auto',
+                      borderRadius: 'var(--r-sm)',
+                      background: 'var(--paper-2)',
+                      padding: 12,
+                      fontSize: 12,
+                      margin: 0,
+                    }}
+                  >
+                    {JSON.stringify(block.props, null, 2)}
+                  </pre>
+                </div>
               </section>
             );
           })}
@@ -133,12 +148,15 @@ export default async function CmsPagePreview({
 
 function PreviewError({ reason, pageId }: { reason: string; pageId: string }) {
   return (
-    <div className="mx-auto max-w-xl space-y-4 py-12 text-center">
-      <h1 className="text-xl font-semibold">Preview unavailable</h1>
-      <p className="text-muted-foreground">{reason}</p>
-      <Button asChild variant="outline">
-        <Link href={`/admin/cms/pages/${pageId}` as `/admin/cms/pages/${string}`}>Back to editor</Link>
-      </Button>
+    <div className="wrap" style={{ maxWidth: 560, textAlign: 'center', paddingBlock: 48 }}>
+      <h2 className="h-md" style={{ fontFamily: 'var(--serif)', marginBottom: 8 }}>Preview unavailable</h2>
+      <p className="t-sub" style={{ marginBottom: 20 }}>{reason}</p>
+      <Link
+        href={`/admin/cms/pages/${pageId}` as `/admin/cms/pages/${string}`}
+        className="btn btn-ghost btn-sm"
+      >
+        Back to editor
+      </Link>
     </div>
   );
 }

@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import { getPageAdmin } from '@/modules/cms/pages';
 import { signPreviewToken } from '@/modules/cms/preview';
 import { isBlockKind } from '@/modules/cms/blocks';
@@ -65,13 +64,13 @@ export default async function CmsPageEditor({ params }: { params: Params }) {
       : null;
 
   return (
-    <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-2">
-        <Link href="/admin/cms/pages">
-          <ArrowLeft className="mr-1 h-4 w-4" />
+    <>
+      <div style={{ marginBottom: 16 }}>
+        <Link href="/admin/cms/pages" className="t-sub" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <ArrowLeft className="h-4 w-4" />
           All pages
         </Link>
-      </Button>
+      </div>
 
       <BlockBuilder
         pageId={admin.page.id}
@@ -82,6 +81,6 @@ export default async function CmsPageEditor({ params }: { params: Params }) {
         hasPublishedVersion={admin.page.publishedVersionId !== null}
         previewHref={previewHref}
       />
-    </div>
+    </>
   );
 }

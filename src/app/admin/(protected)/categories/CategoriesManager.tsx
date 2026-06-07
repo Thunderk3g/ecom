@@ -6,14 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -22,14 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   createCategoryAction,
   updateCategoryAction,
@@ -114,12 +104,20 @@ export function CategoriesManager({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate}>New category</Button>
-          </DialogTrigger>
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            Categories
+          </h2>
+          <span className="t-sub">Organize products into a category tree.</span>
+        </div>
+        <button type="button" className="btn btn-clay btn-sm" onClick={openCreate}>
+          + New category
+        </button>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editingId ? 'Edit category' : 'New category'}</DialogTitle>
@@ -202,58 +200,68 @@ export function CategoriesManager({
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
 
-      <div className="rounded-md border bg-background">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Slug</TableHead>
-              <TableHead>Visibility</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Category tree</h3>
+        </div>
+        <table className="dtable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Slug</th>
+              <th>Visibility</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
             {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+              <tr>
+                <td colSpan={4} style={{ textAlign: 'center', color: 'var(--ink-3)', padding: '40px 16px' }}>
                   No categories yet.
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ) : (
               rows.map(row => (
-                <TableRow key={row.id}>
-                  <TableCell>
-                    <span style={{ paddingLeft: `${row.depth * 16}px` }} className="font-medium">
+                <tr key={row.id}>
+                  <td>
+                    <span style={{ paddingLeft: `${row.depth * 16}px` }} className="t-strong">
                       {row.name}
                     </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{row.slug ?? '—'}</TableCell>
-                  <TableCell>
-                    <Badge variant={row.published ? 'default' : 'secondary'}>
-                      {row.published ? 'Published' : 'Hidden'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
+                  </td>
+                  <td className="t-sub" style={{ fontFamily: 'ui-monospace,monospace' }}>
+                    {row.slug ?? '—'}
+                  </td>
+                  <td>
+                    {row.published ? (
+                      <span className="statpill sp-active">Published</span>
+                    ) : (
+                      <span className="statpill sp-draft">Hidden</span>
+                    )}
+                  </td>
+                  <td className="num">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => openEdit(row)}
+                    >
                       Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
                       disabled={pending}
                       onClick={() => remove(row.id)}
                     >
                       Delete
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                    </button>
+                  </td>
+                </tr>
               ))
             )}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
-    </div>
+    </>
   );
 }

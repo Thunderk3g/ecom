@@ -1,9 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { TableCell, TableRow } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/format';
 
 export type AuditEntry = {
@@ -18,11 +15,11 @@ export type AuditEntry = {
   diff: Record<string, unknown> | null;
 };
 
-const ACTOR_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
-  user: 'default',
-  system: 'secondary',
-  webhook: 'outline',
-  job: 'outline',
+const ACTOR_PILL: Record<string, string> = {
+  user: 'sp-active',
+  system: 'sp-draft',
+  webhook: 'sp-low',
+  job: 'sp-low',
 };
 
 /**
@@ -72,58 +69,67 @@ export function EntryRow({ entry }: { entry: AuditEntry }) {
 
   return (
     <>
-      <TableRow>
-        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+      <tr>
+        <td className="t-sub" style={{ whiteSpace: 'nowrap' }}>
           {formatDateTime(entry.createdAt)}
-        </TableCell>
-        <TableCell>
-          <div className="flex flex-col gap-1">
-            <Badge variant={ACTOR_VARIANT[entry.actorType] ?? 'secondary'}>
-              {entry.actorType}
-            </Badge>
-            <span className="text-xs text-muted-foreground">{actorLabel}</span>
+        </td>
+        <td>
+          <div className="cellrow">
+            <div>
+              <span className={`statpill ${ACTOR_PILL[entry.actorType] ?? 'sp-draft'}`}>
+                {entry.actorType}
+              </span>
+              <div className="t-sub" style={{ marginTop: 4 }}>{actorLabel}</div>
+            </div>
           </div>
-        </TableCell>
-        <TableCell className="font-mono text-xs">{entry.action}</TableCell>
-        <TableCell>
-          <div className="flex flex-col">
-            <span className="text-sm">{entry.entityType}</span>
-            <span
-              className="font-mono text-xs text-muted-foreground"
+        </td>
+        <td className="t-sub" style={{ fontFamily: 'ui-monospace,monospace' }}>
+          {entry.action}
+        </td>
+        <td>
+          <div>
+            <div className="t-strong">{entry.entityType}</div>
+            <div
+              className="t-sub"
+              style={{ fontFamily: 'ui-monospace,monospace' }}
               title={entry.entityId ?? ''}
             >
               {shortenId(entry.entityId)}
-            </span>
+            </div>
           </div>
-        </TableCell>
-        <TableCell className="text-xs text-muted-foreground">
-          {summary}
-        </TableCell>
-        <TableCell className="text-right">
-          <Button
+        </td>
+        <td className="t-sub">{summary}</td>
+        <td className="num">
+          <button
             type="button"
-            size="sm"
-            variant="ghost"
+            className="btn btn-ghost btn-sm"
             onClick={() => setOpen(o => !o)}
             disabled={!hasPayload}
             aria-expanded={open}
             aria-controls={`audit-payload-${entry.id}`}
           >
             {open ? 'Hide' : 'View'}
-          </Button>
-        </TableCell>
-      </TableRow>
+          </button>
+        </td>
+      </tr>
       {open && hasPayload ? (
-        <TableRow>
-          <TableCell colSpan={6} className="bg-muted/30">
+        <tr>
+          <td colSpan={6} style={{ background: 'var(--paper-2)' }}>
             <pre
               id={`audit-payload-${entry.id}`}
-              className="max-h-96 overflow-auto rounded-md bg-background p-3 text-xs"
+              style={{
+                maxHeight: '24rem',
+                overflow: 'auto',
+                borderRadius: 'var(--r-sm)',
+                background: 'var(--card)',
+                padding: 12,
+                fontSize: 12,
+              }}
             >
               {JSON.stringify(entry.diff, null, 2)}
             </pre>
-          </TableCell>
-        </TableRow>
+          </td>
+        </tr>
       ) : null}
     </>
   );

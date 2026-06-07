@@ -1,7 +1,6 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { getAdminContext } from '../_lib/context';
-import { PageHeader, CursorPager } from '../_lib/ui';
+import { CursorPager } from '../_lib/ui';
 import { listProducts, type ProductStatus } from '@/modules/catalog/products';
 import { getAdminCategoryTree } from '@/modules/catalog/categories';
 import { flattenCategories } from '../_lib/categories';
@@ -53,40 +52,48 @@ export default async function ProductsPage({
   }));
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Products"
-        description="Catalog products, variants, and status."
-        action={
-          <div className="flex gap-2">
-            <Button asChild variant="outline">
-              <Link href={'/admin/products/import' as Parameters<typeof Link>[0]['href']}>
-                Import CSV
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href={'/admin/products/new' as Parameters<typeof Link>[0]['href']}>
-                New product
-              </Link>
-            </Button>
-          </div>
-        }
-      />
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            Products
+          </h2>
+          <p className="t-sub" style={{ marginTop: 4 }}>
+            Catalog products, variants, and status.
+          </p>
+        </div>
+        <div className="row" style={{ gap: 10 }}>
+          <Link
+            href={'/admin/products/import' as Parameters<typeof Link>[0]['href']}
+            className="btn btn-ghost btn-sm"
+          >
+            Import CSV
+          </Link>
+          <Link
+            href={'/admin/products/new' as Parameters<typeof Link>[0]['href']}
+            className="btn btn-clay btn-sm"
+          >
+            + New product
+          </Link>
+        </div>
+      </div>
 
-      <ProductsFilters
-        status={status ?? ''}
-        categoryId={categoryId ?? ''}
-        brand={brand ?? ''}
-        categories={categoryOptions}
-      />
+      <div className="panel">
+        <ProductsFilters
+          status={status ?? ''}
+          categoryId={categoryId ?? ''}
+          brand={brand ?? ''}
+          categories={categoryOptions}
+        />
 
-      <ProductsTable rows={rows} />
+        <ProductsTable rows={rows} />
 
-      <CursorPager
-        basePath="/admin/products"
-        nextCursor={result.nextCursor}
-        params={{ status, categoryId, brand }}
-      />
-    </div>
+        <CursorPager
+          basePath="/admin/products"
+          nextCursor={result.nextCursor}
+          params={{ status, categoryId, brand }}
+        />
+      </div>
+    </>
   );
 }

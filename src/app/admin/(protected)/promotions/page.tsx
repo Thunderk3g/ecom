@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { and, desc, eq, lt, or, type SQL } from 'drizzle-orm';
-import { Button } from '@/components/ui/button';
 import { getAdminContext } from '../_lib/context';
-import { PageHeader, CursorPager } from '../_lib/ui';
+import { CursorPager } from '../_lib/ui';
 import { withTenant } from '@/modules/tenant/with-tenant';
 import { promotions } from '@/db/schema/promotions';
 import { decodeCursor, encodeCursor } from '@/lib/cursor';
@@ -85,28 +84,34 @@ export default async function PromotionsPage({
   }));
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Promotions"
-        description="Coupon codes and automatic discounts."
-        action={
-          <Button asChild>
-            <Link href={'/admin/promotions/new' as Parameters<typeof Link>[0]['href']}>
-              New promotion
-            </Link>
-          </Button>
-        }
-      />
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            Promotions
+          </h2>
+          <span className="t-sub">Coupon codes and automatic discounts.</span>
+        </div>
+        <Link
+          className="btn btn-clay btn-sm"
+          href={'/admin/promotions/new' as Parameters<typeof Link>[0]['href']}
+        >
+          + New promotion
+        </Link>
+      </div>
 
-      <PromotionsFilters status={status ?? ''} />
-
-      <PromotionsTable rows={rows} />
+      <div className="panel">
+        <div className="tbar">
+          <PromotionsFilters status={status ?? ''} />
+        </div>
+        <PromotionsTable rows={rows} />
+      </div>
 
       <CursorPager
         basePath="/admin/promotions"
         nextCursor={result.nextCursor}
         params={{ status }}
       />
-    </div>
+    </>
   );
 }

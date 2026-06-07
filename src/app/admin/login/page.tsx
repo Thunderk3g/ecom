@@ -6,15 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -62,70 +53,87 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">Admin sign in</CardTitle>
-          <CardDescription>
+    <div
+      className="flex min-h-screen items-center justify-center px-4"
+      style={{ background: 'var(--paper-2)' }}
+    >
+      <div className="surface pad" style={{ width: '100%', maxWidth: 400 }}>
+        <div className="stack" style={{ gap: 4, marginBottom: 22 }}>
+          <span
+            className="logo"
+            style={{
+              fontFamily: 'var(--serif)',
+              fontSize: 30,
+              letterSpacing: '.18em',
+              textIndent: '.18em',
+            }}
+          >
+            Plume
+          </span>
+          <span className="eyebrow muted">Admin</span>
+          <p className="t-sub" style={{ marginTop: 2 }}>
             Enter your credentials to access the dashboard.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-4"
-              noValidate
+          </p>
+        </div>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="stack"
+            style={{ gap: 16 }}
+            noValidate
+          >
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem className="field">
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <input
+                      type="email"
+                      autoComplete="email"
+                      placeholder="you@store.com"
+                      className="input"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem className="field">
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      className="input"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {error ? (
+              <p className="text-sm font-medium" style={{ color: 'var(--sale)' }}>
+                {error}
+              </p>
+            ) : null}
+            <button
+              type="submit"
+              className="btn btn-clay btn-block"
+              disabled={form.formState.isSubmitting}
             >
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        autoComplete="email"
-                        placeholder="you@store.com"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        autoComplete="current-password"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {error ? (
-                <p className="text-sm font-medium text-destructive">{error}</p>
-              ) : null}
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={form.formState.isSubmitting}
-              >
-                {form.formState.isSubmitting ? 'Signing in…' : 'Sign in'}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+              {form.formState.isSubmitting ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+        </Form>
+      </div>
     </div>
   );
 }

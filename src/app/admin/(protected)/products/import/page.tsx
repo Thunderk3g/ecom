@@ -1,15 +1,20 @@
-import { PageHeader } from '../../_lib/ui';
 import { ImportForm } from './ImportForm';
 
 export const dynamic = 'force-dynamic';
 
 export default function ProductImportPage() {
   return (
-    <div className="max-w-2xl space-y-4">
-      <PageHeader
-        title="Import products"
-        description="Upload a CSV to bulk-create products and variants."
-      />
+    <div style={{ maxWidth: 720 }}>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            Import products
+          </h2>
+          <p className="t-sub" style={{ marginTop: 4 }}>
+            Upload a CSV to bulk-create products and variants.
+          </p>
+        </div>
+      </div>
       <ImportForm />
     </div>
   );

@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { getAdminContext } from '../../_lib/context';
-import { PageHeader } from '../../_lib/ui';
 import { withTenant } from '@/modules/tenant/with-tenant';
 import { promotions } from '@/db/schema/promotions';
 import { PromotionForm } from '../_components/PromotionForm';
@@ -48,9 +47,16 @@ export default async function EditPromotionPage({
   const subtitle = row.code ? `Code: ${row.code}` : 'Automatic promotion';
 
   return (
-    <div className="space-y-4">
-      <PageHeader title={row.name} description={subtitle} />
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            {row.name}
+          </h2>
+          <span className="t-sub">{subtitle}</span>
+        </div>
+      </div>
       <PromotionForm mode="edit" promotionId={row.id} initial={initial} />
-    </div>
+    </>
   );
 }

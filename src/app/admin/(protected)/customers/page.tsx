@@ -1,5 +1,5 @@
+import Link from 'next/link';
 import { getAdminContext } from '../_lib/context';
-import { PageHeader, CursorPager } from '../_lib/ui';
 import { listCustomers } from '@/modules/customers/customers';
 import { withTenant } from '@/modules/tenant/with-tenant';
 import { orders } from '@/db/schema/orders';
@@ -57,22 +57,45 @@ export default async function CustomersPage({
     };
   });
 
+  let nextHref: Parameters<typeof Link>[0]['href'] | null = null;
+  if (result.nextCursor) {
+    const search = new URLSearchParams();
+    if (email) search.set('email', email);
+    search.set('after', result.nextCursor);
+    nextHref = `/admin/customers?${search.toString()}` as Parameters<
+      typeof Link
+    >[0]['href'];
+  }
+
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Customers"
-        description="Storefront customers, addresses, and order history."
-      />
+    <>
+      <div className="between" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 className="h-md" style={{ fontFamily: 'var(--serif)' }}>
+            Customers
+          </h2>
+          <span className="t-sub">
+            Storefront customers, addresses, and order history.
+          </span>
+        </div>
+      </div>
 
-      <CustomersFilters email={email ?? ''} />
+      <div className="panel">
+        <CustomersFilters email={email ?? ''} />
 
-      <CustomersTable rows={rows} />
+        <CustomersTable rows={rows} />
 
-      <CursorPager
-        basePath="/admin/customers"
-        nextCursor={result.nextCursor}
-        params={{ email }}
-      />
-    </div>
+        {nextHref ? (
+          <div className="pager">
+            <span>Showing {rows.length} customers</span>
+            <div className="pg">
+              <Link href={nextHref} className="row-act">
+                Next ›
+              </Link>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </>
   );
 }
