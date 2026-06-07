@@ -9,6 +9,9 @@ services:
     ports: ["5433:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Provisions the NOBYPASSRLS `app_user` runtime role on a fresh volume.
+      # Runs once at first init; harmless (idempotent) if the role already exists.
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U app_migrator -d ecommerce"]
       interval: 3s
