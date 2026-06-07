@@ -9,10 +9,21 @@ const redis = new Redis(env.REDIS_URL);
 const CACHE_TTL_SECONDS = 600; // 10 min
 const NEG_TTL_SECONDS = 60;    // 1 min for misses, to avoid hammering DB
 
-function key(host: string) { return `tenant:domain:${host.toLowerCase()}`; }
+/**
+ * Normalise an inbound Host header to the bare hostname we store in
+ * `store_domains.domain`: lowercase, port stripped. Browsers send
+ * `localhost:3000` (and any non-80/443 dev/staging port), but domains are
+ * registered without a port, so an exact match would 404 the whole tenant.
+ * The trailing `:\d+` strip leaves IPv6 literals like `[::1]` intact.
+ */
+function normalizeHost(host: string): string {
+  return host.toLowerCase().replace(/:\d+$/, '');
+}
+
+function key(host: string) { return `tenant:domain:${normalizeHost(host)}`; }
 
 export async function resolveTenant(host: string): Promise<string | null> {
-  const h = host.toLowerCase();
+  const h = normalizeHost(host);
   const cached = await redis.get(key(h));
   if (cached === '__miss__') return null;
   if (cached) return cached;
