@@ -99,7 +99,11 @@ export async function computeFacets(
         })
         .from(products);
       const rows = await (conds.length > 0 ? baseQ.where(and(...conds)) : baseQ)
-        .groupBy(sql`${products.attributes} ->> ${key}`)
+        // GROUP BY by ordinal (the first SELECT column = the `->> key` value).
+        // Repeating the `${products.attributes} ->> ${key}` fragment here would
+        // bind `key` as a SECOND parameter, which Postgres treats as a distinct
+        // expression from the SELECT one ("must appear in the GROUP BY clause").
+        .groupBy(sql`1`)
         .orderBy(sql`count(*) DESC`);
 
       attributesFacet[key] = rows
