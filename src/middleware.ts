@@ -24,44 +24,53 @@ const ADMIN_API_PREFIX = '/api/v1/admin';
 const ADMIN_RATE_LIMIT = 600;
 const ADMIN_RATE_WINDOW_SECONDS = 60;
 
-/**
- * Baseline Content-Security-Policy. Deliberately conservative; individual
- * routes (storefront pages that load remote images, embed payment SDKs, etc.)
- * tighten or extend this per-route via their own response headers. This default
- * is the floor applied to everything the matcher covers.
- */
 // Next.js dev mode (react-refresh / HMR) evaluates code via `eval` and injects
-// inline bootstrap scripts, so the strict production `script-src 'self'` would
-// break the dev server with a CSP violation. We relax script-src ONLY when not
-// in production; the shipped header stays strict ('self' with no eval/inline).
+// inline bootstrap scripts, so a strict `script-src 'self'` would break the dev
+// server. We relax script-src with `unsafe-eval`/`unsafe-inline` ONLY in dev.
 const DEV = process.env.NODE_ENV !== 'production';
-const SCRIPT_SRC = DEV
-  ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
-  : "script-src 'self'";
-const CONNECT_SRC = DEV
-  ? // HMR websocket + dev overlay need ws:/wss: back to the dev server.
-    "connect-src 'self' ws: wss:"
-  : "connect-src 'self'";
 
-const BASELINE_CSP = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "frame-ancestors 'none'",
-  "object-src 'none'",
-  "img-src 'self' data: blob:",
-  "style-src 'self' 'unsafe-inline'",
-  SCRIPT_SRC,
-  CONNECT_SRC,
-  "form-action 'self'",
-].join('; ');
+/**
+ * Per-request Content-Security-Policy. In production it is **nonce-based**: each
+ * request gets a fresh nonce that is (a) injected into `script-src` here and
+ * (b) propagated to Next.js via the request `Content-Security-Policy` header, so
+ * Next stamps the same `nonce=` onto every inline bootstrap/hydration script it
+ * emits. Without this the App Router's own inline scripts are blocked by
+ * `script-src 'self'` and the page never hydrates.
+ *
+ * NOTE: we must NOT also include `'unsafe-inline'` in production — when a nonce
+ * is present, CSP3 browsers IGNORE `'unsafe-inline'`. Dev keeps the relaxed
+ * form (no nonce) so HMR's eval/inline scripts keep working.
+ *
+ * Deliberately conservative; individual routes may tighten/extend per-route.
+ */
+function buildSecurityHeaders(nonce: string | null): Record<string, string> {
+  const scriptSrc =
+    DEV || !nonce
+      ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
+      : `script-src 'self' 'nonce-${nonce}'`;
+  // HMR websocket + dev overlay need ws:/wss: back to the dev server.
+  const connectSrc = DEV ? "connect-src 'self' ws: wss:" : "connect-src 'self'";
 
-const SECURITY_HEADERS: Record<string, string> = {
-  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Content-Security-Policy': BASELINE_CSP,
-};
+  const csp = [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    "img-src 'self' data: blob:",
+    "style-src 'self' 'unsafe-inline'",
+    scriptSrc,
+    connectSrc,
+    "form-action 'self'",
+  ].join('; ');
+
+  return {
+    'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Content-Security-Policy': csp,
+  };
+}
 
 /**
  * Templated route extraction for the metrics histogram label. Concrete UUIDs
@@ -90,6 +99,19 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   // want a more accurate per-handler observation than the middleware-exit one.
   requestHeaders.set(REQUEST_START_HEADER, String(start));
 
+  // Per-request CSP nonce (production only). Propagating it to Next via the
+  // request Content-Security-Policy header makes the App Router stamp the same
+  // nonce onto its inline bootstrap/hydration scripts (otherwise `script-src
+  // 'self'` blocks them and the page never hydrates). Also exposed as x-nonce
+  // for any Server Component that renders its own inline <script>.
+  const nonce = DEV ? null : Buffer.from(crypto.randomUUID()).toString('base64');
+  const securityHeaders = buildSecurityHeaders(nonce);
+  const cspValue = securityHeaders['Content-Security-Policy'];
+  if (nonce && cspValue) {
+    requestHeaders.set('x-nonce', nonce);
+    requestHeaders.set('Content-Security-Policy', cspValue);
+  }
+
   // Admin API rate limit: a single keyed bucket per (storeId, userId) so we
   // don't have to wrap each admin endpoint individually. Skip non-admin paths
   // and skip when we can't identify a session/store (those calls will fail
@@ -107,7 +129,7 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
         if (limited) {
           // Stamp security + request-id on the 429 response too.
           limited.headers.set(REQUEST_ID_HEADER, requestId);
-          for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+          for (const [k, v] of Object.entries(securityHeaders)) {
             limited.headers.set(k, v);
           }
           // Record the 429 in the metrics histogram before returning.
@@ -131,7 +153,7 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   // Echo the request id so clients can correlate, and stamp security headers.
   res.headers.set(REQUEST_ID_HEADER, requestId);
   res.headers.set('Server-Timing', `mw;dur=${Date.now() - start}`);
-  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+  for (const [key, value] of Object.entries(securityHeaders)) {
     res.headers.set(key, value);
   }
 
