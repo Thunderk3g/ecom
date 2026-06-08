@@ -87,7 +87,10 @@ const currencyPatch = z
 
 const featuresPatch = z.record(z.string(), z.boolean());
 
-export const siteConfigPatchSchema = z
+// Module-local — a "use server" file may only *export* async functions, so this
+// schema (a value) must stay un-exported. `SiteConfigPatch` (a type, below) is
+// erased at build and is safe to export.
+const siteConfigPatchSchema = z
   .object({
     brand: brandPatch.optional(),
     theme: themePatch.optional(),

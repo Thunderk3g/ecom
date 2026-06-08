@@ -13,6 +13,32 @@
 -- `app_user` role, and DATABASE_URL to the `postgres` (migrator) string.
 -- =============================================================================
 
+-- 0. Migrator owner role: NOLOGIN, BYPASSRLS. Mirrors the local `app_migrator`.
+--    On Supabase the migrator connection logs in as `postgres`, but several
+--    migrations (0010) do `ALTER FUNCTION ... OWNER TO app_migrator` so the
+--    SECURITY DEFINER trigger functions (stock-level / threshold maintenance)
+--    run with BYPASSRLS and can write across tenant RLS. That role must exist,
+--    and `postgres` must be a MEMBER of it to transfer ownership. `postgres` on
+--    Supabase has BYPASSRLS + CREATEROLE, so it can provision this.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_migrator') THEN
+    CREATE ROLE app_migrator NOLOGIN BYPASSRLS;
+  END IF;
+END
+$$;
+GRANT app_migrator TO postgres;  -- lets postgres set OWNER TO app_migrator
+-- Postgres requires the NEW owner to hold CREATE on the schema during an
+-- ownership transfer, so app_migrator needs USAGE + CREATE on public.
+GRANT USAGE, CREATE ON SCHEMA public TO app_migrator;
+-- app_migrator owns + must DML every table the SECURITY DEFINER functions touch.
+GRANT ALL ON ALL TABLES IN SCHEMA public TO app_migrator;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO app_migrator;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  GRANT ALL ON TABLES TO app_migrator;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  GRANT ALL ON SEQUENCES TO app_migrator;
+
 -- 1. Runtime role: login, NOBYPASSRLS. Replace the password with a real secret
 --    and store it only in your deployment env (never commit it).
 DO $$

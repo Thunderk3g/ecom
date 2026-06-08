@@ -10,7 +10,7 @@ Moving the platform off self-hosted Postgres/Redis/Render onto **Supabase** (dat
 |---|---|---|
 | 0 | Unblock dev server (Sentry disabled, CSP dev fix) | ✅ done |
 | 1 | DB connection Supabase-ready (`APP_DATABASE_URL`, runtime role decoupled) | ✅ done — code in place |
-| 2 | Provision Supabase project + run migrations + seed | ⏳ needs your Supabase project |
+| 2 | Provision Supabase project + run migrations + seed | ✅ done 2026-06-08 — 56 tables, seeded, RLS verified |
 | 3 | Storage: R2 → Supabase Storage (behind existing MediaProvider) | ⏳ planned |
 | 4 | Jobs: BullMQ/Redis → Supabase (pg_cron + Postgres queue + Edge Functions) | ⏳ planned (largest rewrite) |
 | 5 | Deploy UI → Vercel (env wiring, build) | ⏳ planned |
@@ -41,6 +41,23 @@ Moving the platform off self-hosted Postgres/Redis/Render onto **Supabase** (dat
    pnpm db:seed
    ```
 5. Verify: storefront/admin render against Supabase exactly as they do locally.
+
+### Phase 2 — what actually happened (2026-06-08)
+
+Run from an unblocked network (corporate egress blocks Postgres ports 5432/6543; only :443 is open). Project `hasuznrxkgybphouxjoj`, region `aws-1-ap-southeast-1`, **free tier** (direct host is IPv6-only → everything goes through the Supavisor pooler).
+
+1. **Connection strings** (pooler; custom roles use the tenant-qualified `<role>.<ref>` username):
+   - migrate/seed → session pooler **`:5432`** as `postgres.<ref>` (advisory locks need session mode).
+   - runtime → transaction pooler **`:6543`** as `app_user.<ref>` (`prepare:false` already set in `src/db/client.ts`).
+2. **`bootstrap.sql` now provisions BOTH roles** (it previously only made `app_user`):
+   - `app_migrator` NOLOGIN BYPASSRLS, `GRANT app_migrator TO postgres`, plus `USAGE, CREATE ON SCHEMA public` and `ALL` on tables/sequences (+ default privileges). Needed because migration `0010` does `ALTER FUNCTION … OWNER TO app_migrator` on the SECURITY DEFINER stock/threshold trigger functions — that role must exist, `postgres` must be a member, and the new owner needs `CREATE` on `public` for the ownership transfer. Supabase `postgres` has `BYPASSRLS`+`CREATEROLE` so it can create it.
+   - `app_user` LOGIN NOBYPASSRLS (runtime), unchanged.
+3. Applied 23 Drizzle migrations + seed (11 products / 14 variants). `pg_trgm`/`unaccent` (migration 0007) created fine on Supabase.
+4. **RLS verified** as `app_user`: 0 rows without `app.store_id`, 11 with it set.
+
+> Local dev was untouched — migrate/seed ran with **inline env overrides**, `.env` still points at local Docker (`DATABASE_URL`/`APP_DATABASE_URL` unset there; Supabase strings stashed as inert `SUPABASE_*` vars).
+>
+> **Open follow-up (security hygiene):** run `get_advisors` / `supabase db advisors`. The SECURITY DEFINER functions live in `public`; they're `RETURNS trigger` (PostgREST won't expose them as RPC) and no tables are granted to `anon`/`authenticated`, so the Data API can't reach tenant data — but an advisors pass before Vercel cutover is worth it.
 
 ## Phase 3 — storage (R2 → Supabase Storage)
 
