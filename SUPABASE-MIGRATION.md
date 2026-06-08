@@ -12,8 +12,8 @@ Moving the platform off self-hosted Postgres/Redis/Render onto **Supabase** (dat
 | 1 | DB connection Supabase-ready (`APP_DATABASE_URL`, runtime role decoupled) | ✅ done — code in place |
 | 2 | Provision Supabase project + run migrations + seed | ✅ done 2026-06-08 — 56 tables, seeded, RLS verified |
 | 3 | Storage: R2 → Supabase Storage (behind existing MediaProvider) | ⏳ planned |
-| 4 | Jobs: BullMQ/Redis → Supabase (pg_cron + Postgres queue + Edge Functions) | ⏳ planned (largest rewrite) |
-| 5 | Deploy UI → Vercel (env wiring, build) | ⏳ planned |
+| 4 | Jobs: BullMQ/Redis → Supabase (pg_cron + Postgres queue + Edge Functions) | ⏳ planned (largest rewrite) — interim: stopgap Render worker host |
+| 5 | Deploy UI → Vercel (env wiring, build) | 🟡 prep done 2026-06-08 — `vercel.json` + `render.yaml` (jobs host) written, build verified; go-live pending |
 
 ---
 
@@ -74,15 +74,64 @@ Target on Supabase:
 
 This removes Redis entirely (then `REDIS_URL` becomes optional and the `worker`/`scheduler` Docker roles are retired). It is a real rewrite per job type, so it gets its own plan before implementation.
 
-## Phase 5 — deploy UI to Vercel
+## Phase 5 — deploy to Vercel + stopgap jobs host
 
-- Import the repo into Vercel; framework auto-detected (Next.js).
-- Set env: `DATABASE_URL`, `APP_DATABASE_URL`, `SESSION_SECRET`, `COOKIE_DOMAIN`, payment + media keys, `NODE_ENV=production`.
-- No `ROLE=worker/scheduler` on Vercel — those become Supabase-side (Phase 4).
-- Custom domains map to tenants via the existing host-header tenant resolution (`store_domains`).
+### Final go-live topology
+
+The app is a 3-role Docker app (`web` + `worker` + `scheduler`). Vercel is serverless and runs **only** the `web` role; the two long-lived background roles move to a small Render host (the **stopgap** until Phase 4 retires Redis/BullMQ onto Supabase). Decision made 2026-06-08: stand up the stopgap host so the store is actually correct (otherwise reserved stock never frees and no emails/webhooks fire).
+
+| Component | Host | Connection |
+|---|---|---|
+| web (SSR / admin / `/api/v1`) | **Vercel** | `vercel.json` (region `sin1`, next to Supabase `ap-southeast-1`) |
+| worker + scheduler | **Render** (stopgap) | `render.yaml` (worker+scheduler only; same Docker image, `ROLE` selects entrypoint) |
+| Postgres | **Supabase** | session pooler `:5432` (migrate) / txn pooler `:6543` (runtime) |
+| Redis (cache + BullMQ) | **Upstash** | `rediss://` URL, shared by Vercel web + Render jobs |
+| Media | **stub** for now | flip to Supabase Storage in Phase 3 |
+
+### Prep done (2026-06-08)
+
+- **`vercel.json`** — `framework: nextjs`, `regions: ["sin1"]`. Does **not** set `NEXT_STANDALONE`, so Vercel uses its native build (not the Docker standalone output).
+- **`render.yaml`** — rewritten to the jobs host: dropped the `web` service, the managed `databases:` block, and the managed `redis` service. `DATABASE_URL` / `APP_DATABASE_URL` / `REDIS_URL` are now external secrets (Supabase + Upstash), not `fromDatabase`/`fromService` wiring. Added `APP_DATABASE_URL` (the worker constructs both DB clients at module load).
+- **Production build verified** locally with `next build` (no `NEXT_STANDALONE`) — the exact build Vercel runs.
+
+### Vercel — env vars (web role)
+
+Set in Project → Settings → Environment Variables (Production). Mark connection strings + secrets as **Sensitive**.
+
+| Var | Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | Supabase **session** pooler `:5432`, user `postgres.<ref>` (migrator) |
+| `APP_DATABASE_URL` | Supabase **txn** pooler `:6543`, user `app_user.<ref>` (runtime, NOBYPASSRLS) |
+| `REDIS_URL` | Upstash `rediss://…` URL |
+| `SESSION_SECRET` | 32+ char secret (same value as the jobs host) |
+| `COOKIE_DOMAIN` | the storefront apex domain (e.g. `.example.com`) |
+| `RATE_LIMIT_PER_MIN` | `120` (optional) |
+| `METRICS_TOKEN` | optional bearer token for `/admin/metrics` |
+| payment keys | `RAZORPAY_*` / `STRIPE_*` for the providers enabled in `site_config` |
+| `MEDIA_PROVIDER` | `stub` (until Phase 3) |
+| `SENTRY_DSN` | omit (Sentry stays opt-in/out-of-bundle) |
+
+> No `ROLE` on Vercel — it defaults to `web`. Custom domains map to tenants via the existing host-header resolution (`store_domains`).
+
+### Render — env vars (worker + scheduler)
+
+Populate the `ecommerce-secrets` group (see `render.yaml`): same `DATABASE_URL`, `APP_DATABASE_URL`, `REDIS_URL`, `SESSION_SECRET`, `COOKIE_DOMAIN` as Vercel, plus payment/media keys. CI must push the image to `ghcr.io/<owner>/ecommerce:latest` and the `image.url` in `render.yaml` updated from the `OWNER` placeholder.
+
+### Go-live order
+
+1. **Provision Upstash** Redis (free tier; `maxmemory-policy noeviction` for BullMQ) → grab `rediss://` URL.
+2. **Push** `git push origin main` (HTTPS :443 — works on the corporate network; only Postgres ports are blocked here).
+3. **Vercel:** import `github.com/Thunderk3g/ecom`, set the env vars above, deploy. (Vercel's build infra has open egress, so it reaches Supabase even though this machine can't.)
+4. **Render:** apply `render.yaml`, populate `ecommerce-secrets`, deploy worker + scheduler.
+5. **Smoke test:** `/healthz` on Vercel returns `200` (postgres + redis ok); place a test order; confirm the scheduler frees a reservation after TTL and the worker dispatches a webhook.
+
+### Network caveat (this machine)
+
+The bajajlife.com network blocks outbound Postgres/Redis ports (5432/6543/6379) but **not** HTTPS :443. So `git push`, the Vercel/Upstash/Render dashboards, and their cloud builds all work from here — only **local** smoke-testing against Supabase/Upstash needs an unblocked network (mobile hotspot), as in Phase 2.
 
 ---
 
 ## Open decisions before Phase 4
 
-- Keep a tiny worker host as an interim while Phase 4 lands, or block deploy on the full jobs rewrite? (Current direction: move jobs to Supabase — Phase 4 — but Phases 2/3/5 can ship first with jobs temporarily disabled or on a stopgap host.)
+- The stopgap Render worker host (decided 2026-06-08) covers jobs until Phase 4 moves them to Supabase pg_cron + Postgres queue + Edge Functions, at which point `render.yaml` and Redis/Upstash are retired.

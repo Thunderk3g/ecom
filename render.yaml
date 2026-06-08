@@ -1,74 +1,39 @@
-# Render Blueprint — one Docker image, three runtime roles, plus managed
-# Postgres and Redis. The ROLE env var selects the entrypoint behaviour
-# (web | worker | scheduler) per docker/entrypoint.sh.
+# Render Blueprint — STOPGAP JOBS HOST (worker + scheduler only).
 #
-# Secrets (DATABASE_URL/REDIS_URL are wired from the managed resources below;
-# everything else lives in the `ecommerce-secrets` env group, created once in
-# the Render dashboard and shared by all three services). See docs/runbook.md.
-
-databases:
-  - name: ecommerce-postgres
-    plan: free # bump to standard for connection headroom + 7-day+ PITR backups
-    databaseName: ecommerce
-    user: app_migrator
-    postgresMajorVersion: "15"
+# Deployment topology after the Supabase/Vercel pivot (see SUPABASE-MIGRATION.md):
+#   - web (Next.js SSR/admin/API) ........ Vercel        (see vercel.json)
+#   - Postgres ........................... Supabase      (DATABASE_URL / APP_DATABASE_URL)
+#   - Redis (cache + BullMQ) ............. Upstash       (REDIS_URL)
+#   - worker + scheduler (this file) ..... Render        <-- BullMQ consumer + cron enqueuer
+#
+# This host exists because Vercel is serverless and cannot run the long-lived
+# `worker`/`scheduler` processes. It runs the SAME Docker image as web, with the
+# ROLE env var selecting the entrypoint (docker/entrypoint.sh). It is a stopgap
+# until Phase 4 moves jobs onto Supabase pg_cron + Edge Functions, at which point
+# this blueprint (and Redis) is retired.
+#
+# DATABASE_URL / APP_DATABASE_URL / REDIS_URL are NO LONGER wired from managed
+# Render resources — they point at Supabase + Upstash and live in the
+# `ecommerce-secrets` env group (created once in the Render dashboard, shared by
+# both services). Never commit the values.
 
 services:
-  # --- Redis (cache + BullMQ) -------------------------------------------------
-  - type: redis
-    name: ecommerce-redis
-    plan: free
-    maxmemoryPolicy: noeviction # BullMQ requires keys not be evicted
-    ipAllowList: [] # private network only
-
-  # --- web: Next.js SSR/ISR + admin + /api/v1 --------------------------------
-  - type: web
-    name: ecommerce-web
-    runtime: image
-    plan: starter
-    healthCheckPath: /healthz
-    autoDeploy: true
-    image:
-      url: ghcr.io/OWNER/ecommerce:latest # set by CI on push to main
-    envVars:
-      - key: ROLE
-        value: web
-      - key: PORT
-        value: "3000"
-      - key: DATABASE_URL
-        fromDatabase:
-          name: ecommerce-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: ecommerce-redis
-          property: connectionString
-      - fromGroup: ecommerce-secrets
-
-  # --- worker: BullMQ consumer ------------------------------------------------
+  # --- worker: BullMQ consumer (emails, csv.imports, inventory.alerts,
+  #     search.reindex, webhook.dispatch, image.post-process) -------------------
   - type: worker
     name: ecommerce-worker
     runtime: image
     plan: starter
     autoDeploy: true
     image:
-      url: ghcr.io/OWNER/ecommerce:latest
+      url: ghcr.io/OWNER/ecommerce:latest # set by CI on push to main
     envVars:
       - key: ROLE
         value: worker
-      - key: DATABASE_URL
-        fromDatabase:
-          name: ecommerce-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: ecommerce-redis
-          property: connectionString
       - fromGroup: ecommerce-secrets
 
-  # --- scheduler: cron-like enqueuer -----------------------------------------
+  # --- scheduler: cron-like enqueuer (reservation.ttl.sweep, cart.ttl.sweep,
+  #     orders.stale-payment-sweep, webhook.dispatch) ---------------------------
   - type: worker
     name: ecommerce-scheduler
     runtime: image
@@ -79,22 +44,29 @@ services:
     envVars:
       - key: ROLE
         value: scheduler
-      - key: DATABASE_URL
-        fromDatabase:
-          name: ecommerce-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: ecommerce-redis
-          property: connectionString
       - fromGroup: ecommerce-secrets
 
-# Secrets shared across services. Create the group in the Render dashboard and
-# populate values there (never commit secrets). Listed here for documentation.
+# Secrets shared across both services. Create the group in the Render dashboard
+# and populate values there (never commit secrets). Listed here for documentation.
+#
+# Connection strings (point at Supabase + Upstash — NOT managed Render resources):
+#   DATABASE_URL      Supabase SESSION pooler :5432 as postgres.<ref>   (migrator)
+#   APP_DATABASE_URL  Supabase TXN pooler     :6543 as app_user.<ref>   (runtime, NOBYPASSRLS)
+#   REDIS_URL         Upstash rediss:// URL                              (BullMQ)
+# Both DATABASE_URL and APP_DATABASE_URL are required: src/db/client.ts constructs
+# the migrator and runtime clients at module load, so the worker/scheduler won't
+# boot with either missing.
 envVarGroups:
   - name: ecommerce-secrets
     envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
       - key: SESSION_SECRET
         sync: false
       - key: COOKIE_DOMAIN
@@ -118,7 +90,7 @@ envVarGroups:
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
       - key: MEDIA_PROVIDER
-        value: r2-imgproxy
+        value: stub
       - key: R2_ACCOUNT_ID
         sync: false
       - key: R2_ACCESS_KEY_ID
