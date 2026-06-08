@@ -6,6 +6,7 @@ import { CmsBlockRenderer } from '@/components/storefront/CmsBlockRenderer';
 import { formatMoney } from './_lib/money';
 import { getStoreContext } from './_lib/context';
 import { loadProductDisplays } from './_lib/product-pricing';
+import { getProductImage, getCategoryImage } from '@/utils/storefront-assets';
 
 // Storefront content is per-tenant and frequently updated; render dynamically
 // so tenant resolution + published CMS state are always current.
@@ -68,10 +69,10 @@ export default async function Home() {
               ) : null}
             </div>
             <div className="hero-art">
-              <div
-                className="ph"
-                data-label="Fine stationery — notebooks, pens & desk goods"
-                style={{ aspectRatio: '4/5', borderRadius: 'var(--r-lg)' }}
+              <img
+                src="/images/hero.png"
+                alt="Fine stationery — notebooks, pens & desk goods"
+                style={{ aspectRatio: '4/5', borderRadius: 'var(--r-lg)', objectFit: 'cover', width: '100%', height: '100%' }}
               />
             </div>
           </div>
@@ -103,6 +104,7 @@ export default async function Home() {
                   fromCents !== null &&
                   compareAtCents !== null &&
                   compareAtCents > fromCents;
+                const imageSrc = getProductImage(product.slug);
                 return (
                   <article key={product.id} className="pcard">
                     <Link
@@ -112,6 +114,9 @@ export default async function Home() {
                     >
                       {onSale ? (
                         <span className="badge badge-sale corner">Sale</span>
+                      ) : null}
+                      {imageSrc ? (
+                        <img src={imageSrc} alt={product.name} />
                       ) : null}
                       <span className="plate-cap">{product.name}</span>
                     </Link>
@@ -169,17 +174,28 @@ export default async function Home() {
               </Link>
             </div>
             <div className="cat-grid">
-              {categories.map(cat => (
-                <Link key={cat.id} href={`/c/${cat.slug}`} className="cat-tile">
-                  <div className="ph clean" data-label={cat.name} />
-                  <div className="cat-cap">
-                    <span>{cat.name}</span>
-                    <span className="ucap" style={{ color: 'var(--clay-deep)' }}>
-                      Shop →
-                    </span>
-                  </div>
-                </Link>
-              ))}
+              {categories.map(cat => {
+                const imageSrc = getCategoryImage(cat.slug);
+                return (
+                  <Link key={cat.id} href={`/c/${cat.slug}`} className="cat-tile">
+                    {imageSrc ? (
+                      <img
+                        src={imageSrc}
+                        alt={cat.name}
+                        style={{ aspectRatio: '4/3', width: '100%', objectFit: 'cover', display: 'block' }}
+                      />
+                    ) : (
+                      <div className="ph clean" data-label={cat.name} />
+                    )}
+                    <div className="cat-cap">
+                      <span>{cat.name}</span>
+                      <span className="ucap" style={{ color: 'var(--clay-deep)' }}>
+                        Shop →
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </section>

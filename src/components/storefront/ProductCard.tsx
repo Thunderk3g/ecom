@@ -4,11 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { formatMoney } from '@/app/(storefront)/_lib/money';
 import type { ProductDisplay } from '@/app/(storefront)/_lib/product-pricing';
 import type { SiteConfig } from '@/platform.defaults';
+import { getProductImage } from '@/utils/storefront-assets';
 
 /**
- * Storefront product card. Image is a themed placeholder until SP-8 derivatives
- * are wired. Price shows the lowest active-variant price ("from") with an
- * optional compare-at strike-through.
+ * Storefront product card. Image resolves to generated visual assets
+ * with a graceful fallback. Price shows the lowest active-variant price ("from")
+ * with an optional compare-at strike-through.
  */
 export function ProductCard({
   display,
@@ -19,14 +20,23 @@ export function ProductCard({
 }) {
   const { product, fromCents, compareAtCents } = display;
   const onSale = fromCents !== null && compareAtCents !== null && compareAtCents > fromCents;
+  const imageSrc = getProductImage(product.slug);
 
   return (
     <Link href={`/p/${product.slug}`} className="group block">
       <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
-        <div className="flex aspect-square items-center justify-center bg-muted">
-          <span className="font-serif text-3xl text-muted-foreground/40">
-            {product.name.slice(0, 1).toUpperCase()}
-          </span>
+        <div className="flex aspect-square items-center justify-center bg-muted overflow-hidden relative">
+          {imageSrc ? (
+            <img
+              src={imageSrc}
+              alt={product.name}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <span className="font-serif text-3xl text-muted-foreground/40">
+              {product.name.slice(0, 1).toUpperCase()}
+            </span>
+          )}
         </div>
         <CardContent className="space-y-1 p-4">
           {product.brand ? (

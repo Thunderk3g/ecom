@@ -7,6 +7,8 @@ import {
   type PurchaseVariant,
 } from '@/components/storefront/ProductPurchasePanel';
 import { getStoreContext } from '../../_lib/context';
+import { ProductGallery } from '@/components/storefront/ProductGallery';
+import { getProductThumbnails } from '@/utils/storefront-assets';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +48,7 @@ export default async function ProductPage({
     status: v.status,
   }));
 
-  const thumbs = product.images.slice(0, 5);
+  const images = getProductThumbnails(product.slug);
 
   return (
     <main className="wrap-wide">
@@ -59,26 +61,8 @@ export default async function ProductPage({
       </div>
 
       <div className="pdp">
-        {/* Gallery — image stubs until SP-8 derivatives are wired. */}
-        <div className="pdp-gallery">
-          <div
-            className="pdp-main ph"
-            data-label={`product · ${product.name}`}
-          >
-            <div className="zoom">⊕</div>
-          </div>
-          {thumbs.length > 1 ? (
-            <div className="pdp-thumbs">
-              {thumbs.map((img, i) => (
-                <div
-                  key={img.id}
-                  className={`pdp-thumb ph${i === 0 ? ' on' : ''}`}
-                  data-label={img.alt ?? '—'}
-                />
-              ))}
-            </div>
-          ) : null}
-        </div>
+        {/* Gallery */}
+        <ProductGallery productName={product.name} images={images} />
 
         {/* Info */}
         <div className="pdp-info">

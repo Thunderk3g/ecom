@@ -8,6 +8,7 @@ import { FilterSidebar } from '@/components/storefront/FilterSidebar';
 import { formatMoney } from '../../_lib/money';
 import { getStoreContext } from '../../_lib/context';
 import { loadProductDisplays } from '../../_lib/product-pricing';
+import { getProductImage, getCategoryImage } from '@/utils/storefront-assets';
 
 export const dynamic = 'force-dynamic';
 
@@ -96,10 +97,19 @@ export default async function CategoryPage({
                 <p className="lede">{category.description}</p>
               ) : null}
             </div>
-            <div
-              className="ph cat-hero-art"
-              data-label={category.name}
-            />
+            {getCategoryImage(category.slug) ? (
+              <img
+                src={getCategoryImage(category.slug)!}
+                alt={category.name}
+                className="cat-hero-art"
+                style={{ objectFit: 'cover' }}
+              />
+            ) : (
+              <div
+                className="ph cat-hero-art"
+                data-label={category.name}
+              />
+            )}
           </div>
         </div>
       </section>
@@ -122,6 +132,7 @@ export default async function CategoryPage({
                       fromCents !== null &&
                       compareAtCents !== null &&
                       compareAtCents > fromCents;
+                    const imageSrc = getProductImage(product.slug);
                     return (
                       <article key={product.id} className="pcard">
                         <Link
@@ -131,6 +142,9 @@ export default async function CategoryPage({
                         >
                           {onSale ? (
                             <span className="badge badge-sale corner">Sale</span>
+                          ) : null}
+                          {imageSrc ? (
+                            <img src={imageSrc} alt={product.name} />
                           ) : null}
                           <span className="plate-cap">{product.name}</span>
                         </Link>

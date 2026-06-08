@@ -5,6 +5,7 @@ import { SearchBox } from '@/components/storefront/SearchBox';
 import { formatMoney } from '../_lib/money';
 import { getStoreContext } from '../_lib/context';
 import { loadProductDisplays } from '../_lib/product-pricing';
+import { getProductImage } from '@/utils/storefront-assets';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,6 +75,7 @@ export default async function SearchPage({
                 fromCents !== null &&
                 compareAtCents !== null &&
                 compareAtCents > fromCents;
+              const imageSrc = getProductImage(product.slug);
               return (
                 <article key={product.id} className="pcard">
                   <Link
@@ -83,6 +85,9 @@ export default async function SearchPage({
                   >
                     {onSale ? (
                       <span className="badge badge-sale corner">Sale</span>
+                    ) : null}
+                    {imageSrc ? (
+                      <img src={imageSrc} alt={product.name} />
                     ) : null}
                     <span className="plate-cap">{product.name}</span>
                   </Link>
