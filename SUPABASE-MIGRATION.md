@@ -113,6 +113,14 @@ Set in Project → Settings → Environment Variables (Production). Mark connect
 | `SENTRY_DSN` | omit (Sentry stays opt-in/out-of-bundle) |
 
 > No `ROLE` on Vercel — it defaults to `web`. Custom domains map to tenants via the existing host-header resolution (`store_domains`).
+>
+> **`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are NOT needed yet.** They're read only inside `src/utils/supabase/{client,server,middleware}.ts`, which nothing in the app imports today (the app's data path is Drizzle, not the Supabase JS client). The local `next build` passed *because it loaded the gitignored `.env`* where they happen to be set — Vercel has no `.env`, but since nothing imports them it doesn't matter. **Add both to Vercel Production when Phase 3 (Supabase Storage/Auth) wires those files in** — `NEXT_PUBLIC_*` are baked at build time, so a redeploy is required after adding them.
+
+### To verify / known limitations
+
+- **Node-runtime middleware on Vercel.** `src/middleware.ts` exports `runtime = 'nodejs'` and imports ioredis + prom-client (per-request rate-limit + tenant resolution). The build accepts it, but confirm Vercel runs Node-runtime middleware on the target plan after the first deploy — this is the class of thing that compiles clean and behaves differently in prod.
+- **`COOKIE_DOMAIN` is a single value but the app is multi-tenant by custom domain.** A session cookie scoped to `.storeA.com` won't carry to `storeB.com`. Fine for a single-storefront go-live; a session-design limitation (not a Phase 5 config fix) the moment a second custom domain points in.
+- **Readiness scope:** `next build` + these configs prove *compilation and topology*, not that the app serves data through the Supabase txn pooler + Upstash on Vercel. That's the runtime smoke test (go-live step 5) and is still unrun.
 
 ### Render — env vars (worker + scheduler)
 
