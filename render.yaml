@@ -1,21 +1,26 @@
-# Render Blueprint — STOPGAP JOBS HOST (worker + scheduler only).
+# Render Blueprint — OPTIONAL jobs host. NOT part of the current $0 go-live.
 #
-# Deployment topology after the Supabase/Vercel pivot (see SUPABASE-MIGRATION.md):
+# ⚠️  The correctness-critical scheduler sweeps (reservation/cart TTL — they free
+#     reserved stock) now run for FREE on Supabase pg_cron — see supabase/cron.sql.
+#     So the `scheduler` service below is SUPERSEDED by pg_cron; do NOT run both
+#     (they'd double-enqueue — harmless because idempotent, but wasteful).
+#
+# This file is kept only as a ready-to-use option for the DEFERRED event-driven
+# jobs (emails, webhook.dispatch, image.post-process, csv.imports) if/when you
+# want them — Render Background Workers are paid (~$7/mo each). The current free
+# deploy ships WITHOUT this host; those jobs enqueue to Upstash and sit unconsumed.
+#
+# Deployment topology (see SUPABASE-MIGRATION.md):
 #   - web (Next.js SSR/admin/API) ........ Vercel        (see vercel.json)
 #   - Postgres ........................... Supabase      (DATABASE_URL / APP_DATABASE_URL)
-#   - Redis (cache + BullMQ) ............. Upstash       (REDIS_URL)
-#   - worker + scheduler (this file) ..... Render        <-- BullMQ consumer + cron enqueuer
+#   - Redis (rate-limit + BullMQ) ........ Upstash       (REDIS_URL — still REQUIRED)
+#   - TTL sweeps ......................... Supabase pg_cron (supabase/cron.sql) — FREE
+#   - worker (this file, OPTIONAL) ....... Render        <-- only for deferred event jobs
 #
-# This host exists because Vercel is serverless and cannot run the long-lived
-# `worker`/`scheduler` processes. It runs the SAME Docker image as web, with the
-# ROLE env var selecting the entrypoint (docker/entrypoint.sh). It is a stopgap
-# until Phase 4 moves jobs onto Supabase pg_cron + Edge Functions, at which point
-# this blueprint (and Redis) is retired.
-#
-# DATABASE_URL / APP_DATABASE_URL / REDIS_URL are NO LONGER wired from managed
-# Render resources — they point at Supabase + Upstash and live in the
-# `ecommerce-secrets` env group (created once in the Render dashboard, shared by
-# both services). Never commit the values.
+# If used: runs the SAME Docker image as web, ROLE selects the entrypoint
+# (docker/entrypoint.sh). DATABASE_URL / APP_DATABASE_URL / REDIS_URL point at
+# Supabase + Upstash and live in the `ecommerce-secrets` env group (created once
+# in the Render dashboard). Never commit the values.
 
 services:
   # --- worker: BullMQ consumer (emails, csv.imports, inventory.alerts,

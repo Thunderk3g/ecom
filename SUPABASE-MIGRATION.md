@@ -12,8 +12,8 @@ Moving the platform off self-hosted Postgres/Redis/Render onto **Supabase** (dat
 | 1 | DB connection Supabase-ready (`APP_DATABASE_URL`, runtime role decoupled) | ✅ done — code in place |
 | 2 | Provision Supabase project + run migrations + seed | ✅ done 2026-06-08 — 56 tables, seeded, RLS verified |
 | 3 | Storage: R2 → Supabase Storage (behind existing MediaProvider) | ⏳ planned |
-| 4 | Jobs: BullMQ/Redis → Supabase (pg_cron + Postgres queue + Edge Functions) | ⏳ planned (largest rewrite) — interim: stopgap Render worker host |
-| 5 | Deploy UI → Vercel (env wiring, build) | 🟡 prep done 2026-06-08 — `vercel.json` + `render.yaml` (jobs host) written, build verified; go-live pending |
+| 4 | Jobs: BullMQ/Redis → Supabase (pg_cron + Postgres queue + Edge Functions) | 🟡 in progress — TTL sweeps done via `supabase/cron.sql` (pg_cron, local-verified); stale-payment + event jobs deferred |
+| 5 | Deploy UI → Vercel (env wiring, build) | 🟡 prep done 2026-06-08 — `vercel.json` + `supabase/cron.sql` written, build + sweeps verified; go-live pending |
 
 ---
 
@@ -74,24 +74,29 @@ Target on Supabase:
 
 This removes Redis entirely (then `REDIS_URL` becomes optional and the `worker`/`scheduler` Docker roles are retired). It is a real rewrite per job type, so it gets its own plan before implementation.
 
-## Phase 5 — deploy to Vercel + stopgap jobs host
+**Landed early (2026-06-08):** the two correctness-critical TTL sweeps (`reservation`, `cart`) already run on **pg_cron** — see `supabase/cron.sql` and Phase 5. This was pulled forward so the Vercel deploy keeps inventory correct (reserved stock frees) without a paid worker host. The rest of Phase 4 (stale-payment, event-driven jobs, Postgres queue) remains.
+
+## Phase 5 — deploy to Vercel ($0 jobs via pg_cron)
 
 ### Final go-live topology
 
-The app is a 3-role Docker app (`web` + `worker` + `scheduler`). Vercel is serverless and runs **only** the `web` role; the two long-lived background roles move to a small Render host (the **stopgap** until Phase 4 retires Redis/BullMQ onto Supabase). Decision made 2026-06-08: stand up the stopgap host so the store is actually correct (otherwise reserved stock never frees and no emails/webhooks fire).
+The app is a 3-role Docker app (`web` + `worker` + `scheduler`). Vercel is serverless and runs **only** the `web` role. Render Background Workers are **paid** (~$7/mo each), so instead of a stopgap worker host the **correctness-critical scheduler sweeps run for $0 on Supabase `pg_cron`** (`supabase/cron.sql`) — they free reserved stock, which is the part that actually corrupts data if skipped. The remaining event-driven jobs (emails, webhooks, image/CSV) are deferred. Decision made 2026-06-08 (chosen over a paid Render host).
 
 | Component | Host | Connection |
 |---|---|---|
 | web (SSR / admin / `/api/v1`) | **Vercel** | `vercel.json` (region `sin1`, next to Supabase `ap-southeast-1`) |
-| worker + scheduler | **Render** (stopgap) | `render.yaml` (worker+scheduler only; same Docker image, `ROLE` selects entrypoint) |
+| TTL sweeps (reservation, cart) | **Supabase pg_cron** | `supabase/cron.sql` — FREE, runs in-DB; replaces the `scheduler` role |
 | Postgres | **Supabase** | session pooler `:5432` (migrate) / txn pooler `:6543` (runtime) |
-| Redis (cache + BullMQ) | **Upstash** | `rediss://` URL, shared by Vercel web + Render jobs |
+| Redis (rate-limit + BullMQ) | **Upstash** | `rediss://` URL — **still required** (middleware rate-limiting) |
+| event-driven jobs (emails, webhooks, image, CSV) | **deferred** | enqueue to Upstash, sit unconsumed; optional paid Render worker (`render.yaml`) later |
+| `orders.stale-payment-sweep` | **deferred** | planned: pg_cron → `pg_net` → secured Vercel route running the existing TS sweep |
 | Media | **stub** for now | flip to Supabase Storage in Phase 3 |
 
 ### Prep done (2026-06-08)
 
 - **`vercel.json`** — `framework: nextjs`, `regions: ["sin1"]`. Does **not** set `NEXT_STANDALONE`, so Vercel uses its native build (not the Docker standalone output).
-- **`render.yaml`** — rewritten to the jobs host: dropped the `web` service, the managed `databases:` block, and the managed `redis` service. `DATABASE_URL` / `APP_DATABASE_URL` / `REDIS_URL` are now external secrets (Supabase + Upstash), not `fromDatabase`/`fromService` wiring. Added `APP_DATABASE_URL` (the worker constructs both DB clients at module load).
+- **`supabase/cron.sql`** — the two TTL sweeps (`jobs.reservation_ttl_sweep`, `jobs.cart_ttl_sweep`) as plpgsql in a private `jobs` schema, scheduled via pg_cron (reservation `* * * * *`, cart `0 */6 * * *`). **Verified against local Docker** (seeded an expired reservation + expired cart, ran each sweep, asserted `stock_levels.reserved` decremented via the existing trigger and a re-run is a no-op; all inside a rolled-back txn so local dev is untouched).
+- **`render.yaml`** — reframed as an **optional** host for the deferred event-driven jobs only (Render workers are paid); the `scheduler` role is superseded by pg_cron. Not part of the $0 go-live.
 - **Production build verified** locally with `next build` (no `NEXT_STANDALONE`) — the exact build Vercel runs.
 
 ### Vercel — env vars (web role)
@@ -122,26 +127,33 @@ Set in Project → Settings → Environment Variables (Production). Mark connect
 - **`COOKIE_DOMAIN` is a single value but the app is multi-tenant by custom domain.** A session cookie scoped to `.storeA.com` won't carry to `storeB.com`. Fine for a single-storefront go-live; a session-design limitation (not a Phase 5 config fix) the moment a second custom domain points in.
 - **Readiness scope:** `next build` + these configs prove *compilation and topology*, not that the app serves data through the Supabase txn pooler + Upstash on Vercel. That's the runtime smoke test (go-live step 5) and is still unrun.
 
-### Render — env vars (worker + scheduler)
+### Supabase pg_cron — apply the sweeps
 
-Populate the `ecommerce-secrets` group (see `render.yaml`): same `DATABASE_URL`, `APP_DATABASE_URL`, `REDIS_URL`, `SESSION_SECRET`, `COOKIE_DOMAIN` as Vercel, plus payment/media keys. `REDIS_URL` must use the **`rediss://`** scheme (Upstash requires TLS; ioredis only enables TLS on `rediss://`).
+Run **`supabase/cron.sql`** once in the Supabase **SQL Editor** (works from the corporate network — it's HTTPS, not a Postgres port). It creates the private `jobs` schema + the two sweep functions, enables `pg_cron`, and schedules them. Verify:
 
-`render.yaml` builds the image **directly from the repo** (`runtime: docker`, `dockerfilePath: ./docker/Dockerfile`) — no GHCR/CI push needed. Render clones `github.com/Thunderk3g/ecom@main`, builds `docker/Dockerfile` once, and runs it twice with `ROLE=worker` / `ROLE=scheduler`. `autoDeploy: true` rebuilds on push to `main`.
+```sql
+SELECT jobname, schedule, active FROM cron.job;                      -- two rows, active
+SELECT jobname, status, return_message, start_time                   -- run history
+  FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;
+```
+
+> Optional (deferred event jobs only): if you later want emails/webhooks/image/CSV, populate `render.yaml`'s `ecommerce-secrets` (same `DATABASE_URL` / `APP_DATABASE_URL` / `REDIS_URL` (**`rediss://`**) / `SESSION_SECRET` / `COOKIE_DOMAIN` as Vercel) and deploy the **worker** service only (the `scheduler` is superseded by pg_cron — don't run both). Render builds from the repo Dockerfile (`runtime: docker`); ~$7/mo.
 
 ### Go-live order
 
-1. **Provision Upstash** Redis (free tier; `maxmemory-policy noeviction` for BullMQ) → grab `rediss://` URL.
-2. **Push** `git push origin main` (HTTPS :443 — works on the corporate network; only Postgres ports are blocked here).
+1. **Provision Upstash** Redis (free tier; `maxmemory-policy noeviction` for BullMQ) → grab the **`rediss://`** URL. Still required: the app won't boot without `REDIS_URL` (middleware rate-limiting).
+2. **Push** `git push origin main` (HTTPS :443 — works on the corporate network).
 3. **Vercel:** import `github.com/Thunderk3g/ecom`, set the env vars above, deploy. (Vercel's build infra has open egress, so it reaches Supabase even though this machine can't.)
-4. **Render:** apply `render.yaml`, populate `ecommerce-secrets`, deploy worker + scheduler.
-5. **Smoke test:** `/healthz` on Vercel returns `200` (postgres + redis ok); place a test order; confirm the scheduler frees a reservation after TTL and the worker dispatches a webhook.
+4. **Supabase:** run `supabase/cron.sql` in the SQL Editor; confirm two active `cron.job` rows.
+5. **Smoke test:** `/healthz` on Vercel returns `200` (postgres + redis ok); place a test order; confirm an expired reservation's stock frees within ~1 min (pg_cron) and `cron.job_run_details` shows successful runs.
 
 ### Network caveat (this machine)
 
-The bajajlife.com network blocks outbound Postgres/Redis ports (5432/6543/6379) but **not** HTTPS :443. So `git push`, the Vercel/Upstash/Render dashboards, and their cloud builds all work from here — only **local** smoke-testing against Supabase/Upstash needs an unblocked network (mobile hotspot), as in Phase 2.
+The bajajlife.com network blocks outbound Postgres/Redis ports (5432/6543/6379) but **not** HTTPS :443. So `git push`, the Vercel/Upstash/Supabase dashboards (incl. the SQL Editor), and their cloud builds all work from here — only **local** smoke-testing against Supabase/Upstash needs an unblocked network (mobile hotspot), as in Phase 2.
 
 ---
 
-## Open decisions before Phase 4
+## Remaining jobs work (post-go-live)
 
-- The stopgap Render worker host (decided 2026-06-08) covers jobs until Phase 4 moves them to Supabase pg_cron + Postgres queue + Edge Functions, at which point `render.yaml` and Redis/Upstash are retired.
+- **`orders.stale-payment-sweep`** — release reservations + cancel orders stuck in `pending_payment`. Plan: pg_cron → `pg_net` → a secured Vercel route running the **existing TS sweep** (one implementation, no plpgsql fork), once webhook delivery exists.
+- **Event-driven jobs** (`webhook.dispatch`, `emails`, `image.post-process`, `csv.imports`) — still enqueue to Upstash with no consumer. Full Phase 4 retires them onto a Postgres queue + Supabase Edge Functions, which also lets `REDIS_URL` become optional. Until then they pile up harmlessly (and Redis stays required for rate-limiting).
