@@ -22,11 +22,13 @@ services:
   #     search.reindex, webhook.dispatch, image.post-process) -------------------
   - type: worker
     name: ecommerce-worker
-    runtime: image
+    runtime: docker
+    repo: https://github.com/Thunderk3g/ecom
+    branch: main
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
     plan: starter
     autoDeploy: true
-    image:
-      url: ghcr.io/OWNER/ecommerce:latest # set by CI on push to main
     envVars:
       - key: ROLE
         value: worker
@@ -36,11 +38,13 @@ services:
   #     orders.stale-payment-sweep, webhook.dispatch) ---------------------------
   - type: worker
     name: ecommerce-scheduler
-    runtime: image
+    runtime: docker
+    repo: https://github.com/Thunderk3g/ecom
+    branch: main
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
     plan: starter
     autoDeploy: true
-    image:
-      url: ghcr.io/OWNER/ecommerce:latest
     envVars:
       - key: ROLE
         value: scheduler

@@ -124,7 +124,9 @@ Set in Project → Settings → Environment Variables (Production). Mark connect
 
 ### Render — env vars (worker + scheduler)
 
-Populate the `ecommerce-secrets` group (see `render.yaml`): same `DATABASE_URL`, `APP_DATABASE_URL`, `REDIS_URL`, `SESSION_SECRET`, `COOKIE_DOMAIN` as Vercel, plus payment/media keys. CI must push the image to `ghcr.io/<owner>/ecommerce:latest` and the `image.url` in `render.yaml` updated from the `OWNER` placeholder.
+Populate the `ecommerce-secrets` group (see `render.yaml`): same `DATABASE_URL`, `APP_DATABASE_URL`, `REDIS_URL`, `SESSION_SECRET`, `COOKIE_DOMAIN` as Vercel, plus payment/media keys. `REDIS_URL` must use the **`rediss://`** scheme (Upstash requires TLS; ioredis only enables TLS on `rediss://`).
+
+`render.yaml` builds the image **directly from the repo** (`runtime: docker`, `dockerfilePath: ./docker/Dockerfile`) — no GHCR/CI push needed. Render clones `github.com/Thunderk3g/ecom@main`, builds `docker/Dockerfile` once, and runs it twice with `ROLE=worker` / `ROLE=scheduler`. `autoDeploy: true` rebuilds on push to `main`.
 
 ### Go-live order
 
