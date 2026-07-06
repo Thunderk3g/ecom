@@ -1,17 +1,27 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { searchProducts } from '@/modules/catalog/search';
+import { getCategoryTree } from '@/modules/catalog/categories';
 import { SearchBox } from '@/components/storefront/SearchBox';
-import { formatMoney } from '../_lib/money';
+import { ProductCard } from '@/components/storefront/ProductCard';
+import { SortSelect } from '@/components/storefront/SortSelect';
+import { MediaPlaceholder } from '@/components/storefront/MediaPlaceholder';
+import { Stagger } from '@/components/storefront/motion';
 import { getStoreContext } from '../_lib/context';
-import { loadProductDisplays } from '../_lib/product-pricing';
-import { getProductImage } from '@/utils/storefront-assets';
+import { loadListingCards, sortListingCards } from '../_lib/listing-cards';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = { title: 'Search' };
 
 type SearchParams = Record<string, string | string[] | undefined>;
+
+const SORT_OPTIONS = [
+  { value: 'relevance', label: 'Relevance' },
+  { value: 'price-asc', label: 'Price: Low to High' },
+  { value: 'price-desc', label: 'Price: High to Low' },
+  { value: 'name-asc', label: 'Name: A to Z' },
+];
 
 function readString(sp: SearchParams, key: string): string | undefined {
   const v = sp[key];
@@ -27,6 +37,10 @@ export default async function SearchPage({
   const { storeId, config } = await getStoreContext();
   const q = readString(sp, 'q')?.trim() ?? '';
   const after = readString(sp, 'after');
+  const sort = readString(sp, 'sort');
+
+  // Departments (published root categories) — suggested from empty/zero states.
+  const departments = (await getCategoryTree(storeId)).filter(c => c.published);
 
   const result =
     q === ''
@@ -36,22 +50,36 @@ export default async function SearchPage({
           filters: { status: 'active' },
           ...(after ? { cursor: after } : {}),
         });
-  const displays = await loadProductDisplays(storeId, result.items);
+  // Relevance is the fetched (FTS-ranked) order; other sorts apply within the
+  // fetched page — the search module has no ORDER BY hook (see _lib/listing-cards).
+  const cards = sortListingCards(await loadListingCards(storeId, result.items), sort);
 
-  const nextHref = result.nextCursor
-    ? `/search?q=${encodeURIComponent(q)}&after=${result.nextCursor}`
-    : null;
+  const nextParams = new URLSearchParams({ q });
+  if (sort) nextParams.set('sort', sort);
+  if (result.nextCursor) nextParams.set('after', result.nextCursor);
+  const nextHref = result.nextCursor ? `/search?${nextParams.toString()}` : null;
+
+  const deptChips =
+    departments.length > 0 ? (
+      <nav className="lst-depts" aria-label="Browse departments">
+        {departments.map(dept => (
+          <Link key={dept.id} href={`/c/${dept.slug}`} className="chip">
+            {dept.name}
+          </Link>
+        ))}
+      </nav>
+    ) : null;
 
   return (
     <div className="wrap-wide section">
-      <div style={{ marginBottom: 'clamp(24px,4vw,40px)' }}>
+      <div className="lst-search-head">
         <span className="eyebrow">Search</span>
         <h1 className="h-lg" style={{ margin: '8px 0 20px' }}>
           {q === '' ? (
             'Find your next favourite'
           ) : (
             <>
-              Results for <em>{q}</em>
+              Results for <em>&ldquo;{q}&rdquo;</em>
             </>
           )}
         </h1>
@@ -59,74 +87,47 @@ export default async function SearchPage({
       </div>
 
       {q === '' ? (
-        <p className="center" style={{ padding: '48px 0', color: 'var(--ink-3)' }}>
-          Type a query above to search the catalog.
-        </p>
-      ) : displays.length === 0 ? (
-        <p className="center" style={{ padding: '48px 0', color: 'var(--ink-3)' }}>
-          No results for &ldquo;{q}&rdquo;.
-        </p>
+        <div className="lst-empty">
+          <div className="lst-empty-art">
+            <MediaPlaceholder label="Search the shop" slug="stationery" aspect="4/3" showLabel={false} />
+          </div>
+          <h2 className="h-md">What are you looking for?</h2>
+          <p className="lede">Type above, or start from a department.</p>
+          {deptChips}
+        </div>
+      ) : cards.length === 0 ? (
+        <div className="lst-empty">
+          <div className="lst-empty-art">
+            <MediaPlaceholder label="No results" slug={q} aspect="4/3" showLabel={false} />
+          </div>
+          <h2 className="h-md">No results for &ldquo;{q}&rdquo;</h2>
+          <p className="lede">
+            Check the spelling, try a broader word, or browse a department instead.
+          </p>
+          {deptChips}
+        </div>
       ) : (
         <>
-          <div className="pgrid">
-            {displays.map(display => {
-              const { product, fromCents, compareAtCents } = display;
-              const onSale =
-                fromCents !== null &&
-                compareAtCents !== null &&
-                compareAtCents > fromCents;
-              const imageSrc = getProductImage(product.slug);
-              return (
-                <article key={product.id} className="pcard">
-                  <Link
-                    href={`/p/${product.slug}`}
-                    className="plate"
-                    aria-label={product.name}
-                  >
-                    {onSale ? (
-                      <span className="badge badge-sale corner">Sale</span>
-                    ) : null}
-                    {imageSrc ? (
-                      <img src={imageSrc} alt={product.name} />
-                    ) : null}
-                    <span className="plate-cap">{product.name}</span>
-                  </Link>
-                  <div className="pmeta">
-                    {product.brand ? (
-                      <span className="brand">{product.brand}</span>
-                    ) : null}
-                    <Link href={`/p/${product.slug}`} className="pname">
-                      {product.name}
-                    </Link>
-                    {fromCents !== null ? (
-                      <div className="prow">
-                        {onSale ? (
-                          <>
-                            <span className="sale-price price">
-                              {formatMoney(fromCents, config)}
-                            </span>
-                            <span className="strike price">
-                              {formatMoney(compareAtCents, config)}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="price">
-                            From {formatMoney(fromCents, config)}
-                          </span>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
-                </article>
-              );
-            })}
+          <div className="lst-toolbar">
+            <p className="lst-count" aria-live="polite">
+              {cards.length}
+              {result.nextCursor ? '+' : ''} {cards.length === 1 && !result.nextCursor ? 'result' : 'results'}
+            </p>
+            <SortSelect options={SORT_OPTIONS} defaultValue="relevance" />
           </div>
+          <Stagger className="pgrid" interval={70}>
+            {cards.map(card => (
+              <ProductCard
+                key={card.product.id}
+                display={card}
+                config={config}
+                {...(card.quickAdd ? { quickAdd: card.quickAdd } : {})}
+              />
+            ))}
+          </Stagger>
           {nextHref ? (
             <div className="load-more">
-              <Link
-                className="btn btn-ghost"
-                href={nextHref as Parameters<typeof Link>[0]['href']}
-              >
+              <Link className="btn btn-ghost" href={nextHref}>
                 Load more
               </Link>
             </div>

@@ -72,17 +72,46 @@ export type CartState = {
   error: string | null;
 };
 
+/**
+ * Client-side display metadata for a variant (the cart API only returns ids
+ * and prices). Registered by product surfaces when they add to cart — see
+ * `addItem`'s `meta` parameter / `registerVariantMeta` — and persisted in
+ * localStorage so the cart drawer can render names/thumbnails after reloads.
+ */
+export type VariantMeta = {
+  /** Product display name (e.g. "Classic A5 Notebook"). */
+  name: string;
+  /** Product slug — the drawer derives a thumbnail via `getProductImage(slug)`. */
+  slug?: string;
+  /** Variant axes, e.g. `{ color: 'Blue', size: 'A5' }`. */
+  axes?: Record<string, string | number>;
+  /** Explicit image URL; wins over the slug-derived thumbnail. */
+  image?: string;
+};
+
 export type CartContextValue = CartState & {
   ready: boolean;
   refresh: () => Promise<void>;
-  addItem: (variantId: string, qty?: number) => Promise<boolean>;
+  addItem: (variantId: string, qty?: number, meta?: VariantMeta) => Promise<boolean>;
   updateItem: (itemId: string, qty: number) => Promise<boolean>;
   removeItem: (itemId: string) => Promise<boolean>;
   applyCoupon: (code: string) => Promise<boolean>;
   removeCoupon: () => Promise<boolean>;
+  /** Cart drawer (slide-over) state — the drawer itself lives in AppShell. */
+  isDrawerOpen: boolean;
+  openDrawer: () => void;
+  closeDrawer: () => void;
+  /** Epoch ms of the last successful add — bumps on every add-to-cart. */
+  lastAddedAt: number | null;
+  /** variantId → display metadata for rendering cart lines client-side. */
+  variantMeta: Record<string, VariantMeta>;
+  /** Prime display metadata for a variant (e.g. from a PDP on mount). */
+  registerVariantMeta: (variantId: string, meta: VariantMeta) => void;
 };
 
 const CART_ID_KEY = 'storefront.cartId';
+const VARIANT_META_KEY = 'storefront.variantMeta.v1';
+const VARIANT_META_CAP = 60;
 
 const CartContext = createContext<CartContextValue | null>(null);
 
@@ -104,8 +133,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
     error: null,
   });
   const [ready, setReady] = useState(false);
+  const [isDrawerOpen, setDrawerOpen] = useState(false);
+  const [lastAddedAt, setLastAddedAt] = useState<number | null>(null);
+  const [variantMeta, setVariantMeta] = useState<Record<string, VariantMeta>>({});
   const csrfRef = useRef<string | null>(null);
   const cartIdRef = useRef<string | null>(null);
+
+  const openDrawer = useCallback(() => setDrawerOpen(true), []);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
+  // Hydrate the variant display-metadata registry (client only).
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(VARIANT_META_KEY);
+      if (raw) setVariantMeta(JSON.parse(raw) as Record<string, VariantMeta>);
+    } catch {
+      /* corrupt/unavailable storage — start empty */
+    }
+  }, []);
+
+  const registerVariantMeta = useCallback((variantId: string, meta: VariantMeta) => {
+    setVariantMeta(prev => {
+      const next: Record<string, VariantMeta> = { ...prev, [variantId]: meta };
+      // Cap the registry; string keys preserve insertion order, so dropping
+      // from the front evicts the oldest entries.
+      const keys = Object.keys(next);
+      if (keys.length > VARIANT_META_CAP) {
+        for (const key of keys.slice(0, keys.length - VARIANT_META_CAP)) {
+          delete next[key];
+        }
+      }
+      try {
+        window.localStorage.setItem(VARIANT_META_KEY, JSON.stringify(next));
+      } catch {
+        /* localStorage unavailable — keep in-memory only */
+      }
+      return next;
+    });
+  }, []);
 
   const countFrom = (cart: Cart | null): number =>
     cart ? cart.items.reduce((sum, it) => sum + it.qty, 0) : 0;
@@ -231,8 +296,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const addItem = useCallback(
-    (variantId: string, qty = 1) =>
-      mutate((cartId, csrf) =>
+    async (variantId: string, qty = 1, meta?: VariantMeta) => {
+      if (meta) registerVariantMeta(variantId, meta);
+      const ok = await mutate((cartId, csrf) =>
         fetch(`/api/v1/cart/${cartId}/items`, {
           method: 'POST',
           credentials: 'include',
@@ -243,8 +309,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
           },
           body: JSON.stringify({ variantId, qty }),
         }),
-      ),
-    [mutate],
+      );
+      if (ok) {
+        // Primary add-to-cart confirmation: pop the drawer open.
+        setLastAddedAt(Date.now());
+        setDrawerOpen(true);
+      }
+      return ok;
+    },
+    [mutate, registerVariantMeta],
   );
 
   const updateItem = useCallback(
@@ -321,8 +394,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem,
       applyCoupon,
       removeCoupon,
+      isDrawerOpen,
+      openDrawer,
+      closeDrawer,
+      lastAddedAt,
+      variantMeta,
+      registerVariantMeta,
     }),
-    [state, ready, refresh, addItem, updateItem, removeItem, applyCoupon, removeCoupon],
+    [
+      state,
+      ready,
+      refresh,
+      addItem,
+      updateItem,
+      removeItem,
+      applyCoupon,
+      removeCoupon,
+      isDrawerOpen,
+      openDrawer,
+      closeDrawer,
+      lastAddedAt,
+      variantMeta,
+      registerVariantMeta,
+    ],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

@@ -4,26 +4,31 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 
-type Suggestion = { term: string; productId: string; name: string };
+export type Suggestion = { term: string; productId: string; name: string };
 
 /**
- * Search box with typeahead (client). Debounced suggestions from
- * `/api/v1/catalog/search?suggest=1`; Enter submits to the search results page.
+ * Debounced typeahead suggestions from `/api/v1/catalog/search?suggest=1`.
+ *
+ * Shared by the inline `SearchBox` (search results page) and the full
+ * `SearchOverlay` (header). Queries shorter than `minLength` clear the list;
+ * in-flight requests are aborted on every keystroke.
  */
-export function SearchBox({ initialQuery = '' }: { initialQuery?: string }) {
-  const router = useRouter();
-  const [query, setQuery] = useState(initialQuery);
+export function useSearchSuggestions(
+  query: string,
+  { minLength = 2, delay = 200 }: { minLength?: number; delay?: number } = {},
+): { suggestions: Suggestion[]; loading: boolean } {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [open, setOpen] = useState(false);
-  const boxRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const q = query.trim();
-    if (q.length < 2) {
+    if (q.length < minLength) {
       setSuggestions([]);
+      setLoading(false);
       return;
     }
     const controller = new AbortController();
+    setLoading(true);
     const t = setTimeout(() => {
       void fetch(`/api/v1/catalog/search?suggest=1&q=${encodeURIComponent(q)}`, {
         signal: controller.signal,
@@ -31,17 +36,36 @@ export function SearchBox({ initialQuery = '' }: { initialQuery?: string }) {
         .then(res => (res.ok ? res.json() : { data: [] }))
         .then((json: { data: Suggestion[] }) => {
           setSuggestions(json.data);
-          setOpen(true);
+          setLoading(false);
         })
         .catch(() => {
           /* aborted or network error — leave suggestions as-is */
         });
-    }, 200);
+    }, delay);
     return () => {
       clearTimeout(t);
       controller.abort();
+      setLoading(false);
     };
-  }, [query]);
+  }, [query, minLength, delay]);
+
+  return { suggestions, loading };
+}
+
+/**
+ * Search box with typeahead (client). Debounced suggestions via
+ * `useSearchSuggestions`; Enter submits to the search results page.
+ */
+export function SearchBox({ initialQuery = '' }: { initialQuery?: string }) {
+  const router = useRouter();
+  const [query, setQuery] = useState(initialQuery);
+  const { suggestions } = useSearchSuggestions(query);
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (suggestions.length > 0) setOpen(true);
+  }, [suggestions]);
 
   useEffect(() => {
     function onClick(e: MouseEvent): void {

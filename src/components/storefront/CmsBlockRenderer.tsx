@@ -40,7 +40,17 @@ export async function renderBlock(
   try {
     switch (block.kind) {
       case 'hero':
-        return <Hero key={key} {...(block.props as unknown as HeroProps)} />;
+        // storeId/config are renderer-injected (like featured-categories) so
+        // the hero can resolve department chips + brand eyebrow; they are not
+        // part of the CMS-validated props.
+        return (
+          <Hero
+            key={key}
+            storeId={storeId}
+            config={config}
+            {...(block.props as unknown as HeroProps)}
+          />
+        );
       case 'featured-categories':
         return (
           <FeaturedCategories

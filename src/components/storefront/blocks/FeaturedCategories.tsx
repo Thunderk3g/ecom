@@ -1,6 +1,5 @@
-import Link from 'next/link';
-import { getCategoryBySlug } from '@/modules/catalog/categories';
-import { Card, CardContent } from '@/components/ui/card';
+import { getCategoryTree, type CategoryNode } from '@/modules/catalog/categories';
+import { CategoryTiles, type CategoryTileData } from './CategoryTiles';
 
 export type FeaturedCategoriesProps = {
   heading?: string;
@@ -8,44 +7,44 @@ export type FeaturedCategoriesProps = {
 };
 
 /**
- * Featured-categories block. Resolves each configured slug to a category and
- * renders a card grid linking into the category listing. Missing/unpublished
- * slugs are skipped so a stale CMS reference never 500s the page.
+ * Featured-categories block. Resolves the configured slugs against the
+ * published category tree (one query, and it carries the children each
+ * department can advertise on its tile) and renders the shared asymmetric
+ * mosaic. Missing/unpublished slugs are skipped so a stale CMS reference
+ * never 500s the page.
  */
 export async function FeaturedCategories({
   storeId,
   heading,
   categorySlugs,
 }: FeaturedCategoriesProps & { storeId: string }) {
-  const resolved = await Promise.all(
-    categorySlugs.map(async slug => {
-      const cat = await getCategoryBySlug(storeId, slug);
-      return cat && cat.published ? cat : null;
-    }),
-  );
-  const categories = resolved.filter((c): c is NonNullable<typeof c> => c !== null);
-  if (categories.length === 0) return null;
+  const tree = await getCategoryTree(storeId);
+  const bySlug = new Map<string, CategoryNode>();
+  const index = (nodes: CategoryNode[]): void => {
+    for (const node of nodes) {
+      bySlug.set(node.slug, node);
+      index(node.children);
+    }
+  };
+  index(tree);
+
+  const tiles: CategoryTileData[] = categorySlugs
+    .map(slug => bySlug.get(slug))
+    .filter((node): node is CategoryNode => node !== undefined)
+    .map(node => ({
+      id: node.id,
+      slug: node.slug,
+      name: node.name,
+      description: node.description,
+      childNames: node.children.map(child => child.name),
+    }));
+
+  if (tiles.length === 0) return null;
 
   return (
-    <section className="container py-12">
-      {heading ? (
-        <h2 className="mb-6 font-serif text-2xl font-semibold tracking-tight">{heading}</h2>
-      ) : null}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {categories.map(cat => (
-          <Link key={cat.id} href={`/c/${cat.slug}`} className="group">
-            <Card className="h-full transition-shadow hover:shadow-md">
-              <CardContent className="flex aspect-square flex-col items-center justify-center gap-2 p-4 text-center">
-                <span className="font-medium group-hover:text-brand">{cat.name}</span>
-                {cat.description ? (
-                  <span className="line-clamp-2 text-xs text-muted-foreground">
-                    {cat.description}
-                  </span>
-                ) : null}
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+    <section className="section hm-cats-sec">
+      <div className="wrap-wide">
+        <CategoryTiles eyebrow="Departments" heading={heading} tiles={tiles} />
       </div>
     </section>
   );

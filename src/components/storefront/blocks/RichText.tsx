@@ -17,9 +17,9 @@ export type RichTextProps = {
 export function RichText({ markdown }: RichTextProps) {
   const blocks = parseBlocks(markdown);
   return (
-    <section className="container py-10">
-      <div className="prose prose-sm max-w-prose text-foreground">
-        {blocks.map((block, i) => renderBlock(block, i))}
+    <section className="section hm-prose-sec">
+      <div className="wrap">
+        <div className="hm-prose">{blocks.map((block, i) => renderBlock(block, i))}</div>
       </div>
     </section>
   );
@@ -85,17 +85,13 @@ function renderBlock(block: Block, key: number): ReactNode {
   switch (block.type) {
     case 'h':
       return block.level === 2 ? (
-        <h2 key={key} className="mt-6 font-serif text-2xl font-semibold tracking-tight">
-          {renderInline(block.text)}
-        </h2>
+        <h2 key={key}>{renderInline(block.text)}</h2>
       ) : (
-        <h3 key={key} className="mt-4 font-serif text-xl font-semibold">
-          {renderInline(block.text)}
-        </h3>
+        <h3 key={key}>{renderInline(block.text)}</h3>
       );
     case 'ul':
       return (
-        <ul key={key} className="my-3 list-disc space-y-1 pl-6">
+        <ul key={key}>
           {block.items.map((item, i) => (
             <li key={i}>{renderInline(item)}</li>
           ))}
@@ -103,11 +99,7 @@ function renderBlock(block: Block, key: number): ReactNode {
       );
     case 'p':
     default:
-      return (
-        <p key={key} className="my-3 leading-relaxed">
-          {renderInline(block.text)}
-        </p>
-      );
+      return <p key={key}>{renderInline(block.text)}</p>;
   }
 }
 
@@ -137,7 +129,7 @@ function renderInline(text: string): ReactNode[] {
           <Link
             key={key++}
             href={safe as Parameters<typeof Link>[0]['href']}
-            className="text-brand underline underline-offset-2"
+            className="underline-slide"
           >
             {label}
           </Link>,

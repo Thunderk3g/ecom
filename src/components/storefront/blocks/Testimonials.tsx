@@ -1,35 +1,42 @@
-import { Card, CardContent } from '@/components/ui/card';
+import { Reveal, Stagger } from '@/components/storefront/motion';
 
 export type TestimonialsProps = {
   heading?: string;
   items: { quote: string; name: string; role?: string }[];
 };
 
-/** Testimonials block: a responsive grid of customer quotes. */
+/**
+ * Testimonials block. Refined quote cards on the sunken paper band: oversized
+ * Playfair quote mark, serif body, initial-avatar attribution. Cards stagger
+ * in on scroll; below 900px the grid becomes a scroll-snap rail.
+ */
 export function Testimonials({ heading, items }: TestimonialsProps) {
   return (
-    <section className="container py-12">
-      {heading ? (
-        <h2 className="mb-6 text-center font-serif text-2xl font-semibold tracking-tight">
-          {heading}
-        </h2>
-      ) : null}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {items.map((item, i) => (
-          <Card key={i} className="bg-brand/5">
-            <CardContent className="flex h-full flex-col gap-4 p-6">
-              <blockquote className="flex-1 text-sm leading-relaxed text-foreground/90">
-                &ldquo;{item.quote}&rdquo;
-              </blockquote>
-              <footer className="text-sm">
-                <span className="font-medium">{item.name}</span>
-                {item.role ? (
-                  <span className="text-muted-foreground"> · {item.role}</span>
-                ) : null}
-              </footer>
-            </CardContent>
-          </Card>
-        ))}
+    <section className="section hm-quotes-sec">
+      <div className="wrap-wide">
+        <Reveal className="hm-head hm-head-center" y={22}>
+          <div>
+            <span className="eyebrow">Word of mouth</span>
+            {heading ? <h2 className="h-lg hm-head-title">{heading}</h2> : null}
+          </div>
+        </Reveal>
+        <Stagger className="hm-quotes" interval={110} y={26}>
+          {items.map((item, i) => (
+            <figure key={i} className="hm-quote hover-lift">
+              <span className="hm-quote-mark" aria-hidden>&ldquo;</span>
+              <blockquote>{item.quote}</blockquote>
+              <figcaption className="hm-quote-who">
+                <span className="hm-quote-avatar" aria-hidden>
+                  {item.name.charAt(0).toUpperCase()}
+                </span>
+                <span className="hm-quote-id">
+                  <strong>{item.name}</strong>
+                  {item.role ? <span className="meta">{item.role}</span> : null}
+                </span>
+              </figcaption>
+            </figure>
+          ))}
+        </Stagger>
       </div>
     </section>
   );

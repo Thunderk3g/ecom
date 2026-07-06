@@ -1,0 +1,150 @@
+/* ============================================================
+   MOTION — animation vocabulary for the Plume storefront
+   Backs the primitives in src/components/storefront/motion/*
+   (see that folder's README.md for the public API).
+
+   Rules of the house:
+   - transform + opacity only (compositor-friendly).
+   - Every effect collapses under prefers-reduced-motion: reduce.
+   - Reveal-style "hidden until observed" states only apply when
+     scripting is enabled, so no-JS visitors always see content.
+   ============================================================ */
+
+:root {
+  /* Signature easing curves */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);   /* long, settling */
+  --ease-out-quick: cubic-bezier(0.2, 0.7, 0.3, 1);  /* matches Plume cards */
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.44, 1);   /* slight overshoot */
+  --dur-reveal: 0.7s;
+  --dur-quick: 0.24s;
+}
+
+/* ---- Reveal / Stagger (scroll-triggered) ---- */
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .m-reveal {
+    opacity: 0;
+    transform: translateY(var(--rv-y, 24px));
+    transition:
+      opacity var(--dur-reveal) var(--ease-out-soft) var(--rv-delay, 0ms),
+      transform var(--dur-reveal) var(--ease-out-soft) var(--rv-delay, 0ms);
+  }
+  .m-reveal.is-inview {
+    opacity: 1;
+    transform: none;
+  }
+
+  .m-stagger > * {
+    opacity: 0;
+    transform: translateY(var(--rv-y, 20px));
+    transition:
+      opacity var(--dur-reveal) var(--ease-out-soft),
+      transform var(--dur-reveal) var(--ease-out-soft);
+  }
+  .m-stagger.is-inview > * {
+    opacity: 1;
+    transform: none;
+  }
+  /* Per-child delays, capped at 12 children (13+ share the max delay). */
+  .m-stagger.is-inview > *:nth-child(n + 2)  { transition-delay: var(--stagger-interval, 80ms); }
+  .m-stagger.is-inview > *:nth-child(3)  { transition-delay: calc(var(--stagger-interval, 80ms) * 2); }
+  .m-stagger.is-inview > *:nth-child(4)  { transition-delay: calc(var(--stagger-interval, 80ms) * 3); }
+  .m-stagger.is-inview > *:nth-child(5)  { transition-delay: calc(var(--stagger-interval, 80ms) * 4); }
+  .m-stagger.is-inview > *:nth-child(6)  { transition-delay: calc(var(--stagger-interval, 80ms) * 5); }
+  .m-stagger.is-inview > *:nth-child(7)  { transition-delay: calc(var(--stagger-interval, 80ms) * 6); }
+  .m-stagger.is-inview > *:nth-child(8)  { transition-delay: calc(var(--stagger-interval, 80ms) * 7); }
+  .m-stagger.is-inview > *:nth-child(9)  { transition-delay: calc(var(--stagger-interval, 80ms) * 8); }
+  .m-stagger.is-inview > *:nth-child(10) { transition-delay: calc(var(--stagger-interval, 80ms) * 9); }
+  .m-stagger.is-inview > *:nth-child(11) { transition-delay: calc(var(--stagger-interval, 80ms) * 10); }
+  .m-stagger.is-inview > *:nth-child(n + 12) { transition-delay: calc(var(--stagger-interval, 80ms) * 11); }
+}
+
+/* ---- Marquee ---- */
+.m-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  /* Soft fade at the edges so items don't clip abruptly. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.m-marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+.m-marquee-group {
+  display: flex;
+  align-items: center;
+  gap: var(--marquee-gap, 44px);
+  padding-inline-end: var(--marquee-gap, 44px);
+  flex: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .m-marquee-track {
+    animation: m-marquee-scroll var(--marquee-duration, 30s) linear infinite;
+  }
+  .m-marquee-hoverpause:hover .m-marquee-track {
+    animation-play-state: paused;
+  }
+}
+@keyframes m-marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ---- Parallax ---- */
+.m-parallax { overflow: hidden; }
+.m-parallax-inner { will-change: transform; }
+@media (prefers-reduced-motion: reduce) {
+  .m-parallax-inner { transform: none !important; will-change: auto; }
+}
+
+/* ---- AnimatedNumber ---- */
+.m-num { font-variant-numeric: tabular-nums; }
+
+/* ---- Page-enter transition (src/app/(storefront)/template.tsx) ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .page-enter {
+    animation: page-enter 0.55s var(--ease-out-soft) both;
+  }
+  @keyframes page-enter {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: none; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: page-enter-fade 0.3s ease both;
+  }
+  @keyframes page-enter-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+}
+
+/* ---- Micro-interaction utilities (use anywhere) ---- */
+
+/* Lift: subtle raise + shadow on hover. Pair with any card/tile. */
+.hover-lift {
+  transition: transform var(--dur-quick) var(--ease-out-quick),
+              box-shadow var(--dur-quick) var(--ease-out-quick);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hover-lift:hover { transform: translateY(-4px); box-shadow: var(--shadow-card); }
+}
+
+/* Underline slide: background-size grows left → right on hover/focus. */
+.underline-slide {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 0.35s var(--ease-out-soft);
+  padding-bottom: 2px;
+}
+.underline-slide:hover,
+.underline-slide:focus-visible {
+  background-size: 100% 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .underline-slide { transition: none; }
+}

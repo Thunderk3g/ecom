@@ -3,10 +3,13 @@ import { getPageBySlug } from '@/modules/cms/pages';
 import { listProducts } from '@/modules/catalog/products';
 import { getCategoryTree } from '@/modules/catalog/categories';
 import { CmsBlockRenderer } from '@/components/storefront/CmsBlockRenderer';
-import { formatMoney } from './_lib/money';
+import { Hero } from '@/components/storefront/blocks/Hero';
+import { CategoryTiles } from '@/components/storefront/blocks/CategoryTiles';
+import { Newsletter } from '@/components/storefront/blocks/Newsletter';
+import { ProductCard } from '@/components/storefront/ProductCard';
+import { Reveal, Stagger } from '@/components/storefront/motion';
 import { getStoreContext } from './_lib/context';
 import { loadProductDisplays } from './_lib/product-pricing';
-import { getProductImage, getCategoryImage } from '@/utils/storefront-assets';
 
 // Storefront content is per-tenant and frequently updated; render dynamically
 // so tenant resolution + published CMS state are always current.
@@ -14,8 +17,10 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Storefront home. Renders the published `home` CMS page through the block
- * registry. When no home page is published, falls back to a sensible default:
- * a hero plus the newest active products and category links.
+ * registry. When no home page is published, falls back to the same editorial
+ * treatment built from the shared block pieces: parallax hero with department
+ * chips, the asymmetric category mosaic, a staggered new-arrivals grid and
+ * the newsletter band.
  */
 export default async function Home() {
   const { storeId, config } = await getStoreContext();
@@ -34,122 +39,49 @@ export default async function Home() {
 
   return (
     <>
-      {/* HERO */}
-      <section className="hero-wrap">
-        <div className="wrap-wide">
-          <div className="hero">
-            <div className="hero-copy">
-              <span className="eyebrow">{config.brand.name}</span>
-              <h1 className="display">
-                Things worth
-                <br />
-                <em>writing</em> down.
-              </h1>
-              {config.brand.tagline ? (
-                <p className="lede" style={{ maxWidth: '42ch', marginTop: 8 }}>
-                  {config.brand.tagline}
-                </p>
-              ) : null}
-              <div
-                className="row"
-                style={{ gap: 12, marginTop: 30, flexWrap: 'wrap' }}
-              >
-                <Link className="btn btn-clay btn-lg" href="/search">
-                  Browse the shop <span className="arr">→</span>
-                </Link>
-              </div>
-              {categories.length > 0 ? (
-                <div className="hero-cats">
-                  {categories.map(cat => (
-                    <Link key={cat.id} href={`/c/${cat.slug}`} className="chip">
-                      {cat.name}
-                    </Link>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-            <div className="hero-art">
-              <img
-                src="/images/hero.png"
-                alt="Fine stationery — notebooks, pens & desk goods"
-                style={{ aspectRatio: '4/5', borderRadius: 'var(--r-lg)', objectFit: 'cover', width: '100%', height: '100%' }}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+      <Hero
+        storeId={storeId}
+        config={config}
+        title={'Things worth\nwriting down.'}
+        subtitle={config.brand.tagline}
+        cta={{ label: 'Browse the shop', href: '/search' }}
+      />
 
-      {/* NEW ARRIVALS */}
-      {displays.length > 0 ? (
-        <section className="section" style={{ paddingTop: 'clamp(40px,5vw,72px)' }}>
+      {categories.length > 0 ? (
+        <section className="section hm-cats-sec">
           <div className="wrap-wide">
-            <div
-              className="between"
-              style={{ marginBottom: 26, alignItems: 'flex-end' }}
-            >
+            <CategoryTiles
+              eyebrow="Departments"
+              heading="Shop by department"
+              tiles={categories.map(cat => ({
+                id: cat.id,
+                slug: cat.slug,
+                name: cat.name,
+                description: cat.description,
+                childNames: cat.children.map(child => child.name),
+              }))}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {displays.length > 0 ? (
+        <section className="section hm-plist">
+          <div className="wrap-wide">
+            <Reveal className="hm-head" y={22}>
               <div>
-                <span className="eyebrow">Most wanted</span>
-                <h2 className="h-lg" style={{ marginTop: 8 }}>
-                  New arrivals
-                </h2>
+                <span className="eyebrow">Just in</span>
+                <h2 className="h-lg hm-head-title">New arrivals</h2>
               </div>
-              <Link className="btn btn-ghost hide-sm" href="/search">
-                Shop the collection <span className="arr">→</span>
+              <Link className="hm-viewall underline-slide hide-sm" href="/search">
+                Shop the collection <span aria-hidden>→</span>
               </Link>
-            </div>
-            <div className="pgrid">
-              {displays.map(display => {
-                const { product, fromCents, compareAtCents } = display;
-                const onSale =
-                  fromCents !== null &&
-                  compareAtCents !== null &&
-                  compareAtCents > fromCents;
-                const imageSrc = getProductImage(product.slug);
-                return (
-                  <article key={product.id} className="pcard">
-                    <Link
-                      href={`/p/${product.slug}`}
-                      className="plate"
-                      aria-label={product.name}
-                    >
-                      {onSale ? (
-                        <span className="badge badge-sale corner">Sale</span>
-                      ) : null}
-                      {imageSrc ? (
-                        <img src={imageSrc} alt={product.name} />
-                      ) : null}
-                      <span className="plate-cap">{product.name}</span>
-                    </Link>
-                    <div className="pmeta">
-                      {product.brand ? (
-                        <span className="brand">{product.brand}</span>
-                      ) : null}
-                      <Link href={`/p/${product.slug}`} className="pname">
-                        {product.name}
-                      </Link>
-                      {fromCents !== null ? (
-                        <div className="prow">
-                          {onSale ? (
-                            <>
-                              <span className="sale-price price">
-                                {formatMoney(fromCents, config)}
-                              </span>
-                              <span className="strike price">
-                                {formatMoney(compareAtCents, config)}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="price">
-                              From {formatMoney(fromCents, config)}
-                            </span>
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+            </Reveal>
+            <Stagger className="pgrid" interval={85} y={22}>
+              {displays.map(display => (
+                <ProductCard key={display.product.id} display={display} config={config} />
+              ))}
+            </Stagger>
           </div>
         </section>
       ) : (
@@ -160,46 +92,7 @@ export default async function Home() {
         </section>
       )}
 
-      {/* POPULAR CATEGORIES */}
-      {categories.length > 0 ? (
-        <section className="section paper2">
-          <div className="wrap-wide">
-            <div
-              className="between"
-              style={{ marginBottom: 26, alignItems: 'flex-end' }}
-            >
-              <h2 className="h-lg">Shop by category</h2>
-              <Link className="btn btn-quiet hide-sm" href="/search">
-                All categories <span className="arr">→</span>
-              </Link>
-            </div>
-            <div className="cat-grid">
-              {categories.map(cat => {
-                const imageSrc = getCategoryImage(cat.slug);
-                return (
-                  <Link key={cat.id} href={`/c/${cat.slug}`} className="cat-tile">
-                    {imageSrc ? (
-                      <img
-                        src={imageSrc}
-                        alt={cat.name}
-                        style={{ aspectRatio: '4/3', width: '100%', objectFit: 'cover', display: 'block' }}
-                      />
-                    ) : (
-                      <div className="ph clean" data-label={cat.name} />
-                    )}
-                    <div className="cat-cap">
-                      <span>{cat.name}</span>
-                      <span className="ucap" style={{ color: 'var(--clay-deep)' }}>
-                        Shop →
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      ) : null}
+      <Newsletter />
     </>
   );
 }

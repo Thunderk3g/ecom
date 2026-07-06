@@ -15,8 +15,20 @@ import '@/styles/plume/styles.css';
 import '@/styles/plume/store-pages.css';
 import '@/styles/plume/admin.css';
 import '@/styles/plume/overrides.css';
+// Motion vocabulary + storefront chrome (header/overlays/footer) — extend the
+// Plume system, so they load after it to win the cascade where they refine it.
+import '@/styles/motion.css';
+import '@/styles/chrome.css';
+// Per-surface storefront styles (home, listing, product/cart/checkout) — same
+// layering rationale as motion/chrome above.
+import '@/styles/home.css';
+import '@/styles/listing.css';
+import '@/styles/pdp.css';
 
-export const metadata = { title: 'Plume — Fine Stationery', description: 'Paper goods, properly.' };
+export const metadata = {
+  title: 'Mahaveer Stationery and Sports — school, sport & craft under one roof',
+  description: 'Stationery, sports gear, art & craft supplies and gifts.',
+};
 
 // Plume's editorial type pairing, self-hosted via next/font: Playfair Display
 // (serif display, with italics) + Hanken Grotesk (sans body). Their generated

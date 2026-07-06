@@ -1,0 +1,458 @@
+/* Homepage sections — owned by the storefront home/blocks surfaces.
+   Extends Plume (see src/styles/plume/styles.css) + motion.css vocabulary.
+   All classes are prefixed `hm-` to stay clear of Plume/chrome/listing/pdp. */
+
+/* ============================================================
+   Shared section header (eyebrow + title + view-all)
+   ============================================================ */
+.hm-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: clamp(24px, 3.4vw, 40px);
+}
+.hm-head-title { margin-top: 10px; }
+.hm-head-center {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.hm-viewall {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--clay-deep);
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+.hm-viewall:hover { color: var(--ink); }
+
+/* ============================================================
+   HERO — editorial band
+   ============================================================ */
+.hm-hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--paper) 0%, var(--paper-2) 100%);
+  border-bottom: 1px solid var(--line-soft);
+}
+.hm-hero-orb {
+  position: absolute;
+  top: -180px;
+  left: -160px;
+  width: 560px;
+  height: 560px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, var(--clay-tint), transparent 68%);
+  opacity: .8;
+  pointer-events: none;
+}
+.hm-hero-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.08fr .92fr;
+  gap: clamp(32px, 5vw, 84px);
+  align-items: center;
+  padding-block: clamp(44px, 6vw, 92px) clamp(48px, 6.5vw, 96px);
+}
+.hm-hero-copy .eyebrow { display: inline-block; margin-bottom: 20px; }
+.hm-display { font-size: clamp(44px, 6.6vw, 100px); max-width: 12ch; }
+.hm-display em {
+  color: var(--clay-deep);
+  padding-bottom: .06em;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 12' preserveAspectRatio='none'%3E%3Cpath d='M3 9 Q 60 1.5 117 6.5' fill='none' stroke='%23A9714F' stroke-opacity='.55' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E")
+    no-repeat left 96% / 100% .14em;
+}
+.hm-hero-lede { max-width: 46ch; margin: 18px 0 0; }
+.hm-hero-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 32px;
+}
+.hm-hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 30px;
+}
+.hm-hero-art {
+  position: relative;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-pop);
+}
+.hm-hero-art .m-parallax-inner { height: 100%; }
+.hm-hero-art img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 4/5;
+  object-fit: cover;
+  /* headroom so the parallax drift never exposes the frame edges */
+  transform: scale(1.12);
+}
+
+/* Marquee strip at the hero's base */
+.hm-hero-strip {
+  position: relative;
+  border-top: 1px solid var(--line);
+  padding-block: 16px;
+}
+.hm-strip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 56px; /* mirrors --marquee-gap so the separator sits mid-gap */
+  font-family: var(--serif);
+  font-size: clamp(16px, 1.6vw, 21px);
+  color: var(--ink-2);
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+.hm-strip-sep { color: var(--clay); font-size: .72em; }
+
+@media (max-width: 900px) {
+  .hm-hero-grid { grid-template-columns: 1fr; padding-block: clamp(36px, 6vw, 56px) clamp(40px, 6vw, 56px); }
+  .hm-display { max-width: none; }
+  .hm-hero-art img { aspect-ratio: 16/10; }
+}
+
+/* ============================================================
+   CATEGORY MOSAIC (featured departments)
+   ============================================================ */
+.hm-cats-sec { background: var(--paper-2); }
+.hm-cats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(14px, 1.6vw, 22px);
+}
+.hm-cat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.hm-cat:focus-visible { outline: 2px solid var(--clay-deep); outline-offset: 3px; }
+.hm-cat-media {
+  position: relative;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  background: var(--swatch);
+}
+.hm-cat-media > * {
+  width: 100%;
+  height: 100%;
+  transition: transform .8s var(--ease-out-soft);
+}
+.hm-cat-media img { object-fit: cover; }
+@media (prefers-reduced-motion: no-preference) {
+  .hm-cat:hover .hm-cat-media > *,
+  .hm-cat:focus-visible .hm-cat-media > * { transform: scale(1.055); }
+}
+.hm-cat-cap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.hm-cat-name { font-weight: 600; font-size: 14.5px; }
+.hm-cat-cap .meta { white-space: nowrap; }
+.hm-cat-arr { color: var(--clay-deep); transition: transform var(--dur-quick) var(--ease-out-quick); }
+.hm-cat:hover .hm-cat-arr { transform: translateX(3px); }
+
+/* Lead (hero-sized) tile: media fills, caption overlays a scrim */
+.hm-cat.is-lead { grid-column: span 2; grid-row: span 2; min-height: 320px; }
+.hm-cat.is-lead .hm-cat-media { position: absolute; inset: 0; aspect-ratio: auto; }
+.hm-cat.is-lead .hm-cat-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(185deg, transparent 44%, rgba(33, 29, 24, .68) 92%);
+}
+.hm-cat-lead-cap {
+  position: relative;
+  margin-top: auto;
+  padding: clamp(18px, 2.4vw, 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--paper);
+}
+.hm-cat-lead-name {
+  font-size: clamp(24px, 2.6vw, 36px);
+  line-height: 1.06;
+  color: #fff;
+}
+.hm-cat-lead-sub { margin: 0; font-size: 13.5px; color: rgba(255, 255, 255, .82); max-width: 40ch; }
+.hm-cat-go {
+  margin-top: 8px;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.hm-cat-go span { transition: transform var(--dur-quick) var(--ease-out-quick); }
+.hm-cat:hover .hm-cat-go span { transform: translateX(3px); }
+
+@media (max-width: 900px) {
+  .hm-cats { grid-template-columns: 1fr 1fr; }
+  .hm-cat.is-lead { grid-column: 1 / -1; grid-row: auto; aspect-ratio: 16/9; min-height: 230px; }
+}
+@media (max-width: 540px) {
+  .hm-cat-cap { padding: 12px 13px; }
+  .hm-cat-name { font-size: 13.5px; }
+}
+
+/* ============================================================
+   PRODUCT GRID sections
+   ============================================================ */
+.hm-rail > * { flex: 0 0 min(72vw, 276px); }
+
+/* ============================================================
+   BANNER — full-bleed parallax band
+   ============================================================ */
+.hm-banner {
+  position: relative;
+  overflow: hidden;
+  background: var(--ink);
+}
+.hm-banner-media {
+  /* vertical bleed ≥ the Parallax maxOffset so drift never exposes the edges */
+  position: absolute;
+  inset: -18% 0;
+}
+.hm-banner-media .m-parallax-inner { height: 100%; }
+.hm-banner-media img { width: 100%; height: 100%; object-fit: cover; }
+.hm-banner-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(98deg, rgba(33, 29, 24, .78) 8%, rgba(33, 29, 24, .38) 52%, rgba(169, 113, 79, .30) 100%);
+}
+.hm-banner-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 26px;
+  padding-block: clamp(76px, 12vw, 150px);
+}
+.hm-banner-text {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: clamp(28px, 3.8vw, 52px);
+  line-height: 1.1;
+  letter-spacing: -.01em;
+  color: var(--paper);
+  max-width: 22ch;
+  text-wrap: balance;
+}
+.hm-btn-paper { background: var(--paper); color: var(--ink); }
+.hm-btn-paper:hover { background: #fff; }
+
+/* ============================================================
+   TWO-COLUMN story band + prose
+   ============================================================ */
+.hm-twocol {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(32px, 5vw, 76px);
+  align-items: start;
+}
+@media (min-width: 861px) {
+  .hm-cols-1-1 { grid-template-columns: 1fr 1fr; }
+  .hm-cols-1-2 { grid-template-columns: 1fr 2fr; }
+  .hm-cols-2-1 { grid-template-columns: 2fr 1fr; }
+  /* editorial hairline between columns */
+  .hm-twocol > * + * {
+    border-left: 1px solid var(--line);
+    padding-left: clamp(32px, 5vw, 76px);
+  }
+}
+/* nested CMS blocks inside a column lose their own section chrome */
+.hm-col section { padding-block: 0; }
+.hm-col .wrap, .hm-col .wrap-wide { padding-inline: 0; max-width: none; }
+
+.hm-prose { max-width: 62ch; }
+.hm-prose h2 {
+  font-size: clamp(24px, 2.6vw, 36px);
+  line-height: 1.1;
+  margin: 0 0 18px;
+}
+.hm-prose h2::after {
+  content: '';
+  display: block;
+  width: 44px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--clay);
+  margin-top: 16px;
+}
+.hm-prose h3 { font-size: clamp(19px, 1.8vw, 24px); margin: 26px 0 10px; }
+.hm-prose p {
+  margin: 14px 0;
+  font-size: 15.5px;
+  line-height: 1.72;
+  color: var(--ink-2);
+}
+.hm-prose a { color: var(--clay-deep); font-weight: 500; }
+.hm-prose ul {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.hm-prose li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.hm-prose li::before {
+  content: '✳';
+  position: absolute;
+  left: 0;
+  top: 1px;
+  color: var(--clay);
+  font-size: 13px;
+}
+/* Standalone marketing pages (/pages/[slug]) wrap blocks in `.cms-page.section`
+   — collapse the block's own band padding and centre the reading column. */
+.cms-page .hm-prose-sec { padding-block: 0 0 clamp(16px, 2vw, 28px); }
+.cms-page .hm-prose { margin-inline: auto; }
+
+/* Drop cap only in the two-column story context */
+.hm-twocol .hm-prose > p:first-of-type::first-letter {
+  font-family: var(--serif);
+  font-size: 3.1em;
+  line-height: .82;
+  float: left;
+  padding: .08em .14em 0 0;
+  color: var(--clay-deep);
+}
+
+/* ============================================================
+   TESTIMONIALS
+   ============================================================ */
+.hm-quotes-sec { background: var(--paper-2); }
+.hm-quotes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(14px, 1.8vw, 24px);
+}
+.hm-quote {
+  position: relative;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: clamp(24px, 2.6vw, 34px);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.hm-quote-mark {
+  font-family: var(--serif);
+  font-size: 66px;
+  line-height: .55;
+  color: var(--clay);
+  opacity: .9;
+  user-select: none;
+}
+.hm-quote blockquote {
+  margin: 0;
+  flex: 1;
+  font-family: var(--serif);
+  font-size: clamp(17px, 1.5vw, 19.5px);
+  line-height: 1.48;
+  color: var(--ink);
+}
+.hm-quote-who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+.hm-quote-avatar {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--clay-tint);
+  color: var(--clay-deep);
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+}
+.hm-quote-id { display: flex; flex-direction: column; gap: 1px; }
+.hm-quote-id strong { font-size: 13.5px; }
+
+@media (max-width: 900px) {
+  .hm-quotes {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 8px;
+    margin-inline: calc(var(--gut) * -1);
+    padding-inline: var(--gut);
+  }
+  .hm-quotes::-webkit-scrollbar { height: 6px; }
+  .hm-quotes::-webkit-scrollbar-thumb { background: var(--line); border-radius: 999px; }
+  .hm-quote { flex: 0 0 min(80vw, 340px); scroll-snap-align: start; }
+}
+
+/* ============================================================
+   NEWSLETTER — ink band
+   ============================================================ */
+.hm-news {
+  position: relative;
+  overflow: hidden;
+  background: var(--ink);
+  color: color-mix(in oklch, var(--paper) 78%, transparent);
+}
+.hm-news-wm {
+  position: absolute;
+  right: -3%;
+  bottom: -34%;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(220px, 34vw, 460px);
+  line-height: 1;
+  color: rgba(255, 255, 255, .045);
+  pointer-events: none;
+  user-select: none;
+}
+.hm-news-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding-block: clamp(60px, 8vw, 110px);
+}
+.hm-news .eyebrow { color: var(--gold); }
+.hm-news-title {
+  color: var(--paper);
+  font-size: clamp(28px, 3.4vw, 46px);
+  line-height: 1.06;
+  max-width: 20ch;
+  text-wrap: balance;
+}
+.hm-news-form { width: min(460px, 100%); margin-top: 8px; }
+.hm-news-form .news { margin-top: 0; }
+.hm-news-form .news input { flex: 1; }
+.hm-news-fine { margin: 2px 0 0; font-size: 12.5px; color: color-mix(in oklch, var(--paper) 52%, transparent); }

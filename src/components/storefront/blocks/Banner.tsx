@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import type { Route } from 'next';
+import { Parallax, Reveal } from '@/components/storefront/motion';
 
 export type BannerProps = {
   image: { assetId?: string; url?: string; alt?: string };
@@ -8,32 +9,32 @@ export type BannerProps = {
 };
 
 /**
- * Banner block. Full-width image strip with an optional text overlay + CTA.
- * Uses the configured `url` as a background; the SP-8 asset pipeline can later
- * resolve `assetId` to a derivative URL.
+ * Banner block — full-bleed parallax band. The image drifts gently behind an
+ * ink→clay duotone scrim; the message is set as a large serif line with a
+ * paper-coloured CTA. Falls back to a plain ink band when no image URL is
+ * configured (assetId-only refs resolve after SP-8).
  */
 export function Banner({ image, text, cta }: BannerProps) {
-  const bg = image.url;
+  const src = image.url;
+
   return (
-    <section className="container py-6">
-      <div
-        className="relative flex min-h-[200px] items-center overflow-hidden rounded-lg border bg-brand/10"
-        style={bg ? { backgroundImage: `url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
-        role="img"
-        aria-label={image.alt ?? text ?? 'Banner'}
-      >
-        {text || cta ? (
-          <div className="flex flex-col items-start gap-3 p-8">
-            {text ? (
-              <p className="max-w-md font-serif text-2xl font-semibold text-brand">{text}</p>
-            ) : null}
-            {cta ? (
-              <Button asChild variant="secondary">
-                <Link href={cta.href as Parameters<typeof Link>[0]['href']}>{cta.label}</Link>
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
+    <section className="hm-banner">
+      {src ? (
+        <Parallax className="hm-banner-media" speed={0.18} maxOffset={56}>
+          {/* Overlaid text carries the message; expose the CMS alt only when the image stands alone. */}
+          <img src={src} alt={text || cta ? '' : image.alt ?? ''} loading="lazy" />
+        </Parallax>
+      ) : null}
+      <div className="hm-banner-scrim" aria-hidden />
+      <div className="wrap-wide">
+        <Reveal className="hm-banner-inner" y={30}>
+          {text ? <p className="hm-banner-text">{text}</p> : null}
+          {cta ? (
+            <Link className="btn hm-btn-paper btn-lg" href={cta.href as Route}>
+              {cta.label} <span className="arr" aria-hidden>→</span>
+            </Link>
+          ) : null}
+        </Reveal>
       </div>
     </section>
   );

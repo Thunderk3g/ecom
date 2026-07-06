@@ -35,8 +35,14 @@ export async function computeFacets(
       .where(eq(attributeDefinitions.filterable, true));
 
     // -- Category facet --
+    // Strip BOTH category axes ("what if this axis filter is removed"):
+    // `categoryIds` is the descendant-aggregation variant of `categoryId`,
+    // so it belongs to the same facet axis. Brand/attribute facets below keep
+    // any categoryIds constraint (via buildProductFilters) so their counts
+    // reflect the whole department on parent-category pages.
     const catFilters = { ...baseFilter };
     delete catFilters.categoryId;
+    delete catFilters.categoryIds;
     const catConds: SQL[] = buildProductFilters(catFilters);
     catConds.push(sql`${products.categoryId} IS NOT NULL`);
     const catBaseQuery = tx

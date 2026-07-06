@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import { withTenant } from '@/modules/tenant/with-tenant';
 import { products, productVariants, productImages, categories } from '@/db/schema/catalog';
 import {
@@ -27,6 +27,13 @@ export type ProductType = ProductRow['type'];
 
 export type ListProductsFilters = {
   categoryId?: string;
+  /**
+   * Match products in ANY of these categories (`category_id IN (...)`).
+   * Used by parent-category pages to aggregate across descendant leaves.
+   * Additive: combines with `categoryId` via AND when both are set (callers
+   * pass one or the other). An empty array is ignored.
+   */
+  categoryIds?: string[];
   status?: ProductStatus;
   brand?: string;
   /** Map of attribute key -> value or value array; matches products whose attributes jsonb contains the key with one of the values. */
@@ -72,6 +79,9 @@ export function buildProductFilters(filters: ListProductsFilters): SQL[] {
   }
   if (filters.categoryId) {
     conds.push(eq(products.categoryId, filters.categoryId));
+  }
+  if (filters.categoryIds && filters.categoryIds.length > 0) {
+    conds.push(inArray(products.categoryId, filters.categoryIds));
   }
   if (filters.status) {
     conds.push(eq(products.status, filters.status));
