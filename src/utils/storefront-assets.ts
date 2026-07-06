@@ -1,4 +1,11 @@
 export const storefrontCategories: Record<string, string> = {
+  // Parent departments (reuse the best-fitting child imagery; slugs without an
+  // entry fall back to the styled placeholder in the UI).
+  'stationery': '/images/categories/paper-stationery.png',
+  'art-craft': '/images/categories/art-supplies.png',
+  'gifting': '/images/categories/gifting.png',
+  'general': '/images/categories/office-supplies.png',
+  // Child categories (keyed by slug; images exist on disk for these).
   'notebooks': '/images/categories/notebooks.png',
   'pens-writing': '/images/categories/pens-writing.png',
   'art-supplies': '/images/categories/art-supplies.png',
@@ -6,7 +13,6 @@ export const storefrontCategories: Record<string, string> = {
   'school-supplies': '/images/categories/school-supplies.png',
   'paper-stationery': '/images/categories/paper-stationery.png',
   'bags-cases': '/images/categories/bags-cases.png',
-  'gifting': '/images/categories/gifting.png',
 };
 
 export const storefrontProducts: Record<string, string[]> = {
@@ -36,9 +42,8 @@ export const storefrontProducts: Record<string, string[]> = {
   'sketchbook-a4': [
     '/images/products/sketchbook-a4.png',
   ],
-  'sticky-notes-pack': [
-    '/images/products/sticky-notes-pack.png',
-  ],
+  // 'sticky-notes-pack' intentionally unmapped — no image exists on disk;
+  // the card falls back to MediaPlaceholder like the other imageless products.
   'paper-clips-jar': [
     '/images/products/paper-clips-jar.png',
   ],
