@@ -9,12 +9,13 @@ import type { BlockKind } from '@/modules/cms/blocks';
  * validation still runs on save, so this never bypasses the schema — it just
  * avoids brittle runtime zod introspection in the browser.
  *
- * Complex/nested props (image refs, nested column blocks, structured arrays)
- * are edited via a JSON textarea field so every block kind stays editable
- * without a bespoke widget per shape.
+ * Nested/structured props (nested column blocks, arrays) are edited via a JSON
+ * textarea so every block kind stays editable without a bespoke widget per
+ * shape. Image refs are the one exception — they get a real picker (`image`),
+ * because hand-typing an `assetId` uuid into JSON is not an authoring flow.
  */
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'json' | 'select';
+export type FieldType = 'text' | 'textarea' | 'number' | 'json' | 'select' | 'image';
 
 export interface FieldSpec {
   /** Dot-free key within the block's props object. */
@@ -26,6 +27,8 @@ export interface FieldSpec {
   options?: { value: string; label: string }[];
   /** Default value applied when adding a fresh block. */
   defaultValue?: unknown;
+  /** `image` fields only: whether the block's schema demands one. */
+  required?: boolean;
 }
 
 export interface BlockSpec {
@@ -44,10 +47,10 @@ const cta = (key: string): FieldSpec => ({
 
 const imageRef = (key: string, required: boolean): FieldSpec => ({
   key,
-  label: `Image (JSON: { assetId | url, alt })${required ? '' : ' — optional'}`,
-  type: 'json',
-  placeholder: '{ "url": "https://…", "alt": "…" }',
-  help: 'Reference an asset by assetId or an external url.',
+  label: `Image${required ? '' : ' — optional'}`,
+  type: 'image',
+  required,
+  help: 'Pick from the asset library, or point at an external URL.',
 });
 
 export const BLOCK_SPECS: Record<BlockKind, BlockSpec> = {

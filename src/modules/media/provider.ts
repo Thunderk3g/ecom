@@ -7,9 +7,11 @@
  * registry (`./assets.ts`) and the HTTP routes call only this interface — they
  * never import the R2 SDK or imgproxy signer directly.
  *
- * Two implementations:
+ * Three implementations:
  *   - StubMediaProvider (`./stub-provider.ts`) — default. Local PUT receiver,
  *     no network. Used for dev + tests.
+ *   - SupabaseStorageProvider (`./supabase-storage-provider.ts`) — Supabase
+ *     Storage signed upload URLs + public/render URLs. The deployed choice.
  *   - R2Provider (`./r2-provider.ts`) — Cloudflare R2 (S3-compatible) pre-signed
  *     PUT + imgproxy signed derivative URLs.
  *
@@ -21,6 +23,7 @@ import { env } from '@/lib/env';
 import { MediaProviderConfigError } from './errors';
 import { StubMediaProvider } from './stub-provider';
 import { R2Provider } from './r2-provider';
+import { SupabaseStorageProvider } from './supabase-storage-provider';
 
 export type AssetKind = 'image' | 'svg' | 'doc';
 
@@ -79,7 +82,7 @@ export interface DeriveAsset {
 }
 
 export interface MediaProvider {
-  readonly name: 'r2-imgproxy' | 'stub';
+  readonly name: 'r2-imgproxy' | 'supabase-storage' | 'stub';
   presignUpload(input: PresignUploadInput): Promise<PresignUploadResult>;
   finalizeUpload(input: FinalizeUploadInput): Promise<FinalizeUploadResult>;
   /** Build a (possibly signed) URL for a derivative of `asset` at `preset`. */
@@ -122,6 +125,9 @@ export function getMediaProvider(): MediaProvider {
     // R2Provider constructs its S3 client lazily, so importing it is cheap and
     // credential-free until the first real presign/finalize call.
     _provider = new R2Provider();
+  } else if (selected === 'supabase-storage') {
+    // Same laziness contract: the Supabase client is built on first use.
+    _provider = new SupabaseStorageProvider();
   } else if (selected === 'stub') {
     _provider = new StubMediaProvider();
   } else {

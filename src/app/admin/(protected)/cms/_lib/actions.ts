@@ -15,6 +15,7 @@ import {
   SlugConflictError,
   VersionNotFoundError,
 } from '@/modules/cms/errors';
+import { loadGallery } from '../../assets/_lib/data';
 import { getCmsAdminContext, assertPermission, AdminContextError } from './admin-context';
 
 export interface ActionResult {
@@ -126,5 +127,51 @@ export async function saveMenuAction(slot: NavSlot, items: unknown): Promise<Act
     return { ok: true };
   } catch (err) {
     return toError(err);
+  }
+}
+
+export interface PickableAsset {
+  id: string;
+  /** Small rendition for the picker grid; null when none can be derived. */
+  thumbUrl: string | null;
+  filename: string;
+  kind: string;
+  /** True for uploads that never finalized — shown but not selectable. */
+  pending: boolean;
+}
+
+/**
+ * Backs the block editor's image picker. Read-only, so it is gated on
+ * `media:read` rather than `cms:write` — a role that may edit pages but not see
+ * the media library should get an empty picker, not the whole library.
+ *
+ * Returns image + svg assets newest-first. Kept to one page (no cursor) because
+ * the picker is a chooser, not a browser: the asset library at /admin/assets is
+ * where you page, filter, and tag.
+ */
+export async function listImageAssetsAction(): Promise<
+  { ok: true; assets: PickableAsset[] } | { ok: false; error: string }
+> {
+  try {
+    const ctx = await getCmsAdminContext();
+    assertPermission(ctx, 'media:read');
+    const [images, svgs] = await Promise.all([
+      loadGallery(ctx.storeId, { kind: 'image', limit: 60 }),
+      loadGallery(ctx.storeId, { kind: 'svg', limit: 60 }),
+    ]);
+    const assets = [...images.items, ...svgs.items].map(a => ({
+      id: a.id,
+      thumbUrl: a.thumbUrl,
+      filename:
+        typeof a.meta.originalFilename === 'string'
+          ? a.meta.originalFilename
+          : a.key.split('/').pop() ?? a.key,
+      kind: a.kind,
+      pending: a.pending,
+    }));
+    return { ok: true, assets };
+  } catch (err) {
+    const result = toError(err);
+    return { ok: false, error: result.error ?? 'Could not load assets.' };
   }
 }

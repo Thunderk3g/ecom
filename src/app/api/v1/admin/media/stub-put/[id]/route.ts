@@ -1,5 +1,10 @@
 /**
- * PUT /api/v1/admin/media/__stub_put__/[id]
+ * PUT /api/v1/admin/media/stub-put/[id]
+ *
+ * The directory must not be named `__stub_put__` (or anything starting with
+ * `_`): Next.js App Router treats a leading underscore as a *private folder*
+ * and drops it from the route tree, so that path 404'd and the stub upload
+ * flow was unreachable over HTTP.
  *
  * Stub object-storage receiver. In production the pre-signed PUT URL points
  * directly at Cloudflare R2 (no app code runs). With `MEDIA_PROVIDER=stub`

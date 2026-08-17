@@ -34,7 +34,19 @@ const schema = z.object({
   // throws with a clear message at first use if a real provider is chosen
   // without its keys. `MEDIA_PROVIDER` defaults to 'stub' so tests + local dev
   // need no R2/imgproxy credentials and never touch the network.
-  MEDIA_PROVIDER: z.enum(['r2-imgproxy', 'stub']).default('stub'),
+  MEDIA_PROVIDER: z.enum(['r2-imgproxy', 'supabase-storage', 'stub']).default('stub'),
+  // Supabase Storage provider (migration Phase 3). SUPABASE_SERVICE_ROLE_KEY is
+  // the SECRET key — server-only, bypasses RLS, and must never be given a
+  // NEXT_PUBLIC_ name. SUPABASE_STORAGE_TRANSFORM defaults to false because
+  // image transformation is a paid Supabase feature; with it off, derivative
+  // URLs serve the original object instead of erroring on the free tier.
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  SUPABASE_STORAGE_BUCKET: z.string().min(1).default('media'),
+  SUPABASE_STORAGE_TRANSFORM: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform(v => v === 'true'),
   R2_ACCOUNT_ID: z.string().min(1).optional(),
   R2_ACCESS_KEY_ID: z.string().min(1).optional(),
   R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),

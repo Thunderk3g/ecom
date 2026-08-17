@@ -2,7 +2,15 @@ import { defineConfig } from 'vitest/config';
 import { resolve } from 'node:path';
 
 export default defineConfig({
-  resolve: { alias: { '@': resolve(__dirname, 'src') } },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+      // `import 'server-only'` is a build-time guard supplied by Next.js; it
+      // has no meaning under vitest's node environment and cannot be resolved
+      // outside the Next compiler, so point it at a no-op.
+      'server-only': resolve(__dirname, 'tests/_setup/server-only-shim.ts'),
+    },
+  },
   test: {
     environment: 'node',
     globals: false,

@@ -2,7 +2,7 @@
  * StubMediaProvider — the default MediaProvider for dev + tests.
  *
  * - presignUpload: allocates an assetId + content-addressed key and returns a
- *   *local* PUT URL (`/api/v1/admin/media/__stub_put__/<assetId>`). The stub PUT
+ *   *local* PUT URL (`/api/v1/admin/media/stub-put/<assetId>`). The stub PUT
  *   receiver route returns 204 and discards the body — no object storage, no
  *   network. The client (or a test) "uploads" by calling that endpoint.
  * - finalizeUpload: trusts the client-reported metadata (bytes/width/height/
@@ -33,7 +33,11 @@ export class StubMediaProvider implements MediaProvider {
     // Content-addressed-ish key: in the stub we don't have the bytes yet, so we
     // use the assetId as the unique component. R2Provider uses the same shape.
     const key = `${input.storeSlug}/${assetId}.${ext}`;
-    const uploadUrl = `/api/v1/admin/media/__stub_put__/${assetId}`;
+    // NOTE: the path segment must NOT start with '_' — Next.js App Router
+    // treats `_folder` as a *private folder* and excludes it from the route
+    // tree, so the previous `__stub_put__` target 404'd and every upload
+    // through the UI failed at the PUT step.
+    const uploadUrl = `/api/v1/admin/media/stub-put/${assetId}`;
     return Promise.resolve({
       assetId,
       key,

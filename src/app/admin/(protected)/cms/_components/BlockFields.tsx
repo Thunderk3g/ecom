@@ -15,12 +15,14 @@ import {
 
 import type { BlockKind } from '@/modules/cms/blocks';
 import { BLOCK_SPECS, type FieldSpec } from '../_lib/block-fields';
+import { ImageRefField } from './ImageRefField';
 
 /**
  * Generic per-block form. Renders one control per FieldSpec for the block kind.
- * `text`/`textarea`/`number`/`select` map to scalar props; `json` lets the
- * editor author structured props (image refs, arrays, nested blocks) as raw
- * JSON. Authoritative validation runs server-side on save.
+ * `text`/`textarea`/`number`/`select` map to scalar props; `image` gets the
+ * asset-library picker; `json` lets the editor author the remaining structured
+ * props (arrays, nested blocks) as raw JSON. Authoritative validation runs
+ * server-side on save.
  */
 export function BlockFields({
   kind,
@@ -64,7 +66,24 @@ function Field({
   onChange: (value: unknown) => void;
 }) {
   const id = `field-${field.key}`;
-  const wide = field.type === 'textarea' || field.type === 'json';
+  const wide = field.type === 'textarea' || field.type === 'json' || field.type === 'image';
+
+  // The image picker owns its own labelling for the sub-inputs (alt / URL), and
+  // renders its own help text, so it opts out of the shared wrapper below.
+  if (field.type === 'image') {
+    return (
+      <div className="space-y-2 sm:col-span-2">
+        <Label>{field.label}</Label>
+        <ImageRefField
+          id={id}
+          value={value}
+          required={field.required ?? false}
+          help={field.help}
+          onChange={onChange}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={wide ? 'space-y-2 sm:col-span-2' : 'space-y-2'}>

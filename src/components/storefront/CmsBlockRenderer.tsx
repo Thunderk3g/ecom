@@ -1,4 +1,5 @@
 import type { ContentBlock } from '@/modules/cms/blocks';
+import { resolveBlockAssets } from '@/modules/cms/resolve-assets';
 import type { SiteConfig } from '@/platform.defaults';
 import { logger } from '@/lib/logger';
 import { Hero, type HeroProps } from './blocks/Hero';
@@ -25,8 +26,12 @@ export async function CmsBlockRenderer({
   config: SiteConfig;
   blocks: ContentBlock[];
 }) {
+  // Turn `image.assetId` references into concrete `image.url`s before dispatch.
+  // Done here rather than per-component so every image-bearing block (and every
+  // nested two-column column) is covered by one pass and one query.
+  const resolved = await resolveBlockAssets(storeId, blocks);
   const rendered = await Promise.all(
-    blocks.map((block, i) => renderBlock(storeId, config, block, i)),
+    resolved.map((block, i) => renderBlock(storeId, config, block, i)),
   );
   return <>{rendered}</>;
 }

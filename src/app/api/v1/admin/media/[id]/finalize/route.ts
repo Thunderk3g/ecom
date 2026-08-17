@@ -12,6 +12,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { problem } from '@/lib/errors';
+import { logger } from '@/lib/logger';
 import { withIdempotency } from '@/lib/idempotency';
 import { getMediaProvider } from '@/modules/media/provider';
 import { getAsset, updateAssetMetadata } from '@/modules/media/assets';
@@ -78,17 +79,33 @@ export async function POST(req: Request, ctx: RouteCtx): Promise<NextResponse> {
           meta,
         });
 
-        await imagePostProcessQueue.add(
-          'image.post-process',
-          { storeId: pipeline.storeId, assetId: id },
-          {
-            jobId: `post-process:${id}`,
-            attempts: 5,
-            backoff: { type: 'exponential', delay: 1_000 },
-            removeOnComplete: true,
-            removeOnFail: 50,
-          },
-        );
+        // Derivative generation is a best-effort side effect, not part of the
+        // upload contract: the asset row is already committed above and the
+        // MediaProvider can render derivatives on demand. Enqueue failures
+        // (queue down, no consumer deployed) must NOT fail the upload — that
+        // turned every finalize into a 500 in production.
+        //
+        // NOTE: the jobId must not contain ':' — BullMQ rejects custom ids
+        // containing it ("Custom Id cannot contain :"), which is exactly how
+        // this call used to throw.
+        try {
+          await imagePostProcessQueue.add(
+            'image.post-process',
+            { storeId: pipeline.storeId, assetId: id },
+            {
+              jobId: `post-process-${id}`,
+              attempts: 5,
+              backoff: { type: 'exponential', delay: 1_000 },
+              removeOnComplete: true,
+              removeOnFail: 50,
+            },
+          );
+        } catch (err) {
+          logger.warn(
+            { err, assetId: id, storeId: pipeline.storeId },
+            'image.post-process enqueue failed; asset finalized without derivatives',
+          );
+        }
 
         return {
           assetId: updated.id,

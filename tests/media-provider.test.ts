@@ -26,7 +26,7 @@ describe('StubMediaProvider', () => {
     });
     expect(res.assetId).toMatch(/^[0-9a-f-]{36}$/);
     expect(res.key).toBe(`acme/${res.assetId}.png`);
-    expect(res.uploadUrl).toBe(`/api/v1/admin/media/__stub_put__/${res.assetId}`);
+    expect(res.uploadUrl).toBe(`/api/v1/admin/media/stub-put/${res.assetId}`);
     expect(res.headers['content-type']).toBe('image/png');
     expect(res.kind).toBe('image');
   });

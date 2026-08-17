@@ -22,11 +22,9 @@
 import 'server-only';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { eq } from 'drizzle-orm';
-import { withTenant } from '@/modules/tenant/with-tenant';
-import { stores } from '@/db/schema/tenancy';
 import { env } from '@/lib/env';
 import { listAssets, type AssetRow } from './assets';
+import { getStoreSlug } from './store-slug';
 
 export interface BuildSpriteResult {
   /** Logical key for the artifact (matches the public route under /sprites/). */
@@ -99,13 +97,6 @@ function matchAttr(attrs: string, name: string): string | null {
 
 function escapeAttr(v: string): string {
   return v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-}
-
-async function getStoreSlug(storeId: string): Promise<string> {
-  return withTenant(storeId, async tx => {
-    const [row] = await tx.select({ slug: stores.slug }).from(stores).where(eq(stores.id, storeId));
-    return row?.slug ?? 'store';
-  });
 }
 
 /**

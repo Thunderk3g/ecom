@@ -125,6 +125,24 @@ export async function getAsset(storeId: string, assetId: string): Promise<AssetR
   });
 }
 
+/**
+ * Batch lookup keyed by id, for callers resolving several asset references at
+ * once (e.g. every image ref on a CMS page). Missing ids are simply absent from
+ * the map — unlike `getAsset` this does not throw, because a dangling reference
+ * in stored content should degrade to "no image", not fail the page render.
+ */
+export async function getAssetsByIds(
+  storeId: string,
+  assetIds: string[],
+): Promise<Map<string, AssetRow>> {
+  const unique = [...new Set(assetIds)];
+  if (unique.length === 0) return new Map();
+  return withTenant(storeId, async tx => {
+    const rows = await tx.select().from(assets).where(inArray(assets.id, unique));
+    return new Map(rows.map(r => [r.id, toRow(r)]));
+  });
+}
+
 export interface UpdateAssetMetadataInput {
   bytes?: number;
   width?: number | null;
