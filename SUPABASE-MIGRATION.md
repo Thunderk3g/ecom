@@ -57,7 +57,7 @@ Run from an unblocked network (corporate egress blocks Postgres ports 5432/6543;
 
 > Local dev was untouched — migrate/seed ran with **inline env overrides**, `.env` still points at local Docker (`DATABASE_URL`/`APP_DATABASE_URL` unset there; Supabase strings stashed as inert `SUPABASE_*` vars).
 >
-> **Open follow-up (security hygiene):** run `get_advisors` / `supabase db advisors`. The SECURITY DEFINER functions live in `public`; they're `RETURNS trigger` (PostgREST won't expose them as RPC) and no tables are granted to `anon`/`authenticated`, so the Data API can't reach tenant data — but an advisors pass before Vercel cutover is worth it.
+> **~~Open follow-up~~ RESOLVED 2026-08-17 — the claim below was wrong and the project was exposed.** The original note read: *"no tables are granted to `anon`/`authenticated`, so the Data API can't reach tenant data."* Verified against the live project with only the publishable key: **all 56 tables were granted `ALL` to `anon`/`authenticated`**, and `GET /rest/v1/users` returned `email` + `password_hash`, `GET /rest/v1/sessions` returned live 64-hex session tokens, `GET /rest/v1/stores` returned tenant rows. `bootstrap.sql` never granted anything to those roles — **Supabase's own `ALTER DEFAULT PRIVILEGES` for `postgres` in `public` did**, so every table a migration created was born exposed. Tenant tables were saved only by their RLS predicate (`app.store_id` unset under PostgREST); `users`/`sessions` have no RLS and `stores`'s `stores_read_own` fails open when `app.store_id` is unset. Fixed by `supabase/harden-data-api.sql` (revoke + drop the default privileges) and migration `0023_identity_rls.sql` (RLS on `users`/`sessions`); `bootstrap.sql` §6 now revokes up front so new projects are never exposed. **Run `harden-data-api.sql` in the SQL Editor before the Vercel cutover** — see Phase 5. An advisors pass (`get_advisors` / `supabase db advisors`) is still worth doing. The SECURITY DEFINER functions in `public` are `RETURNS trigger`, so PostgREST cannot expose them as RPC — that part held.
 
 ## Phase 3 — storage (R2 → Supabase Storage)
 
@@ -119,7 +119,9 @@ Set in Project → Settings → Environment Variables (Production). Mark connect
 
 > No `ROLE` on Vercel — it defaults to `web`. Custom domains map to tenants via the existing host-header resolution (`store_domains`).
 >
-> **`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are NOT needed yet.** They're read only inside `src/utils/supabase/{client,server,middleware}.ts`, which nothing in the app imports today (the app's data path is Drizzle, not the Supabase JS client). The local `next build` passed *because it loaded the gitignored `.env`* where they happen to be set — Vercel has no `.env`, but since nothing imports them it doesn't matter. **Add both to Vercel Production when Phase 3 (Supabase Storage/Auth) wires those files in** — `NEXT_PUBLIC_*` are baked at build time, so a redeploy is required after adding them.
+> **`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`** are set in `.env` (2026-08-17) and documented in `.env.example`. They're read only inside `src/utils/supabase/{client,server,middleware}.ts`, which nothing in the app imports today (the app's data path is Drizzle, not the Supabase JS client), so they are still **not required on Vercel** for the go-live. **Add both to Vercel Production when Phase 3 (Supabase Storage/Auth) wires those files in** — `NEXT_PUBLIC_*` are baked at build time, so a redeploy is required after adding them.
+>
+> Publishable key only. Never give the secret / `service_role` key a `NEXT_PUBLIC_` name — that ships it to the browser. Note that the publishable key reaching the browser is exactly what made the Data API exposure above a real vulnerability rather than a theoretical one.
 
 ### To verify / known limitations
 
@@ -144,12 +146,14 @@ SELECT jobname, status, return_message, start_time                   -- run hist
 1. **Provision Upstash** Redis (free tier; `maxmemory-policy noeviction` for BullMQ) → grab the **`rediss://`** URL. Still required: the app won't boot without `REDIS_URL` (middleware rate-limiting).
 2. **Push** `git push origin main` (HTTPS :443 — works on the corporate network).
 3. **Vercel:** import `github.com/Thunderk3g/ecom`, set the env vars above, deploy. (Vercel's build infra has open egress, so it reaches Supabase even though this machine can't.)
-4. **Supabase:** run `supabase/cron.sql` in the SQL Editor; confirm two active `cron.job` rows.
+4. **Supabase:** run `supabase/cron.sql` in the SQL Editor; confirm two active `cron.job` rows. ✅ **`supabase/harden-data-api.sql` already applied 2026-08-17** — re-run it after any future migration that creates tables, then re-check that `information_schema.role_table_grants` has no `anon`/`authenticated` rows for `public`.
 5. **Smoke test:** `/healthz` on Vercel returns `200` (postgres + redis ok); place a test order; confirm an expired reservation's stock frees within ~1 min (pg_cron) and `cron.job_run_details` shows successful runs.
 
-### Network caveat (this machine)
+### Network caveat (this machine) — **stale as of 2026-08-17**
 
-The bajajlife.com network blocks outbound Postgres/Redis ports (5432/6543/6379) but **not** HTTPS :443. So `git push`, the Vercel/Upstash/Supabase dashboards (incl. the SQL Editor), and their cloud builds all work from here — only **local** smoke-testing against Supabase/Upstash needs an unblocked network (mobile hotspot), as in Phase 2.
+Previously: the bajajlife.com network blocked outbound Postgres/Redis ports (5432/6543/6379). **Re-tested 2026-08-17: both `:5432` and `:6543` to `aws-1-ap-southeast-1.pooler.supabase.com` are OPEN** — the Data API lockdown was applied and verified directly from this machine over the transaction pooler. So local smoke-testing against Supabase no longer needs a hotspot. Re-test before relying on it; the block may be policy-dependent.
+
+One residual quirk: `curl` on this machine fails TLS with `schannel: … The revocation function was unable to check revocation` (0x80092012) because the corporate proxy blocks CRL/OCSP lookups. Add **`--ssl-no-revoke`** — it still validates the certificate chain, it only skips the revocation check. (`NODE_EXTRA_CA_CERTS` is already set to the corporate CA, so Node is unaffected.)
 
 ---
 

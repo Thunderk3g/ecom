@@ -68,6 +68,28 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
 --    (anything with a dot, e.g. `app.*`) are settable by any role via SET LOCAL.
 --    RLS policies read it with current_setting('app.store_id', true).
 
+-- 6. Keep the Supabase Data API (PostgREST) out of `public`.
+--    Supabase ships `ALTER DEFAULT PRIVILEGES … GRANT ALL ON TABLES TO anon,
+--    authenticated` for the `postgres` role in `public`. Migrations run as
+--    `postgres`, so WITHOUT this block every table they create is born
+--    SELECT/INSERT/UPDATE/DELETE-able through https://<ref>.supabase.co/rest/v1
+--    using the publishable key that ships to every browser. RLS covers the
+--    tenant tables, but `users`/`sessions` are global (no store_id) and would
+--    leak `password_hash` and live session tokens outright.
+--
+--    This app's data path is Drizzle as `app_user`; it never uses the Data API.
+--    Revoking here — BEFORE migrations create any tables — means nothing is ever
+--    exposed in the first place. Re-grant deliberately, per table, with RLS
+--    enabled, if a future phase actually adopts the Data API.
+--    (Already-provisioned project? Run supabase/harden-data-api.sql instead.)
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE ALL ON TABLES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE ALL ON FUNCTIONS FROM anon, authenticated;
+REVOKE USAGE, CREATE ON SCHEMA public FROM anon, authenticated;
+
 -- Note: app_user does NOT get BYPASSRLS and is NOT a member of any privileged
 -- Supabase role (authenticated/service_role). That is intentional — RLS is the
 -- isolation boundary and this role must be subject to it.
