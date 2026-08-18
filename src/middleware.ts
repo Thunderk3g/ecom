@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { recordRequest } from '@/lib/metrics';
 import { withRateLimit } from '@/lib/rate-limit';
 import { getSessionFromRequest } from '@/modules/auth/rbac';
+import { mediaOrigins } from '@/modules/media/origins';
 import { resolveTenant } from '@/modules/tenant/resolve';
 
 // Runtime choice: this middleware runs on the Node runtime (Next.js 15
@@ -48,15 +49,24 @@ function buildSecurityHeaders(nonce: string | null): Record<string, string> {
     DEV || !nonce
       ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
       : `script-src 'self' 'nonce-${nonce}'`;
+  // Object storage the browser talks to directly: it PUTs upload bytes to a
+  // signed URL (connect-src) and renders the stored objects (img-src). Without
+  // these the direct-upload fetch fails as an opaque "Network error" and every
+  // asset renders blank — a browser-only failure that server-side tests miss.
+  const media = mediaOrigins().join(' ');
+  const mediaSuffix = media ? ` ${media}` : '';
+
   // HMR websocket + dev overlay need ws:/wss: back to the dev server.
-  const connectSrc = DEV ? "connect-src 'self' ws: wss:" : "connect-src 'self'";
+  const connectSrc = DEV
+    ? `connect-src 'self' ws: wss:${mediaSuffix}`
+    : `connect-src 'self'${mediaSuffix}`;
 
   const csp = [
     "default-src 'self'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
     "object-src 'none'",
-    "img-src 'self' data: blob:",
+    `img-src 'self' data: blob:${mediaSuffix}`,
     "style-src 'self' 'unsafe-inline'",
     scriptSrc,
     connectSrc,
