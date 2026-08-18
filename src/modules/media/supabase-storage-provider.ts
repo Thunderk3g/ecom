@@ -26,7 +26,7 @@
  */
 
 import crypto from 'node:crypto';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { StorageClient } from '@supabase/storage-js';
 import { env } from '@/lib/env';
 import type {
   DeriveAsset,
@@ -49,7 +49,7 @@ interface SupabaseStorageConfig {
 
 export class SupabaseStorageProvider implements MediaProvider {
   public readonly name = 'supabase-storage' as const;
-  private _client: SupabaseClient | undefined;
+  private _client: StorageClient | undefined;
 
   private config(): SupabaseStorageConfig {
     const missing: string[] = [];
@@ -64,11 +64,18 @@ export class SupabaseStorageProvider implements MediaProvider {
     };
   }
 
-  private client(cfg: SupabaseStorageConfig): SupabaseClient {
+  /**
+   * Deliberately `StorageClient` rather than the full `createClient` from
+   * @supabase/supabase-js: that constructor eagerly builds a RealtimeClient,
+   * which throws "Node.js 20 detected without native WebSocket support" on
+   * Node < 22 and would drag auth/postgrest/realtime into the serverless
+   * bundle for no reason. Storage is the only surface this provider needs.
+   */
+  private client(cfg: SupabaseStorageConfig): StorageClient {
     if (this._client) return this._client;
-    this._client = createClient(cfg.url, cfg.serviceKey, {
-      // Server-side service client: never persist or refresh a user session.
-      auth: { persistSession: false, autoRefreshToken: false },
+    this._client = new StorageClient(`${cfg.url.replace(/\/$/, '')}/storage/v1`, {
+      apikey: cfg.serviceKey,
+      Authorization: `Bearer ${cfg.serviceKey}`,
     });
     return this._client;
   }
@@ -81,7 +88,7 @@ export class SupabaseStorageProvider implements MediaProvider {
     const key = `${input.storeSlug}/${assetId}.${ext}`;
 
     const { data, error } = await this.client(cfg)
-      .storage.from(cfg.bucket)
+      .from(cfg.bucket)
       .createSignedUploadUrl(key);
     if (error || !data) {
       throw new Error(`supabase storage: createSignedUploadUrl failed — ${error?.message}`);
@@ -100,7 +107,7 @@ export class SupabaseStorageProvider implements MediaProvider {
 
   async finalizeUpload(input: FinalizeUploadInput): Promise<FinalizeUploadResult> {
     const cfg = this.config();
-    const { data } = await this.client(cfg).storage.from(cfg.bucket).info(input.key);
+    const { data } = await this.client(cfg).from(cfg.bucket).info(input.key);
     return {
       // Prefer the real stored size; fall back to the client's claim only when
       // the object metadata is unavailable.
@@ -115,7 +122,7 @@ export class SupabaseStorageProvider implements MediaProvider {
   deriveUrl(asset: DeriveAsset, preset: DerivativePreset): string {
     const cfg = this.config();
     const size = DERIVATIVE_PRESETS[preset];
-    const storage = this.client(cfg).storage.from(cfg.bucket);
+    const storage = this.client(cfg).from(cfg.bucket);
     // SVGs must never go through raster transformation — serve them verbatim.
     const useTransform = cfg.transform && asset.kind === 'image';
     const { data } = useTransform
